@@ -10,10 +10,8 @@ def load_data():
     url = "https://raw.githubusercontent.com/Mani190424/smart-home-data/main/smart_home_8yr_simulated.csv"
     df = pd.read_csv(url)
     df['Date'] = pd.to_datetime(df['Date'])
-    df['Week'] = df['Date'].dt.isocalendar().week
-    df['Month'] = df['Date'].dt.month_name()
-    df['Year'] = df['Date'].dt.year
     return df
+
 
 df = load_data()
 
