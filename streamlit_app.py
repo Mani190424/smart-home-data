@@ -4,7 +4,17 @@ import plotly.express as px
 from datetime import datetime
 
 # Load your dataset
-df = pd.read_csv("https://raw.githubusercontent.com/Mani190424/smart-home-data/main/smart_home_8yr_simulated.csv")
+import requests
+from io import StringIO
+
+csv_url = "https://raw.githubusercontent.com/Mani190424/smart-home-data/main/smart_home_8yr_simulated.csv"
+response = requests.get(csv_url)
+
+if response.status_code == 200:
+    df = pd.read_csv(StringIO(response.text))
+else:
+    st.error("❌ Failed to load data from GitHub.")
+
 
 
 # --- Clean and preprocess ---
