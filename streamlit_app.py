@@ -1,66 +1,72 @@
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-st.set_page_config("Smart Home Energy Dashboard", layout="wide")
+st.set_page_config(page_title="Smart Home Dashboard", layout="wide")
 
-# Load CSV data from GitHub
 @st.cache_data
 def load_data():
     url = "https://raw.githubusercontent.com/Mani190424/smart-home-data/main/smart_home_8yr_simulated.csv"
     df = pd.read_csv(url)
-    df.columns = df.columns.str.strip()
     df['Date'] = pd.to_datetime(df['Date'])
+    df['Week'] = df['Date'].dt.isocalendar().week
+    df['Month'] = df['Date'].dt.month_name()
+    df['Year'] = df['Date'].dt.year
     return df
 
 df = load_data()
 
 # Sidebar Filters
-st.sidebar.header("🔧 Filters")
-room_list = df["Room"].unique().tolist()
-selected_room = st.sidebar.selectbox("Select Room", room_list)
-timeframe = st.sidebar.radio("Select Timeframe", ["Weekly", "Monthly", "Yearly"])
+st.sidebar.title("🔧 Filters")
+room_filter = st.sidebar.multiselect("Select Room", options=df['Room'].unique(), default=df['Room'].unique())
+view_mode = st.sidebar.radio("Select View", ["Weekly", "Monthly", "Yearly"])
 
-# Filter and Resample Data
-df_room = df[df["Room"] == selected_room]
+df_filtered = df[df['Room'].isin(room_filter)]
 
-if timeframe == "Weekly":
-    df_grouped = df_room.resample("W-Mon", on="Date").mean(numeric_only=True)
-elif timeframe == "Monthly":
-    df_grouped = df_room.resample("M", on="Date").mean(numeric_only=True)
+# View Aggregation
+if view_mode == "Weekly":
+    group_cols = ['Year', 'Week', 'Room']
+elif view_mode == "Monthly":
+    group_cols = ['Year', 'Month', 'Room']
 else:
-    df_grouped = df_room.resample("Y", on="Date").mean(numeric_only=True)
+    group_cols = ['Year', 'Room']
 
-# Header and KPIs
-st.title("🏠 Smart Home Energy Dashboard")
+df_agg = df_filtered.groupby(group_cols).agg({
+    'Power (kW)': 'sum',
+    'Temperature (°C)': 'mean',
+    'Humidity (%)': 'mean'
+}).reset_index()
+
+# KPIs
+st.title("📊 Smart Home Automation Dashboard")
 col1, col2, col3 = st.columns(3)
-col1.metric("⚡ Total Power Used", f"{df_room['Power'].sum():,.2f} kWh")
-col2.metric("🌡️ Avg Temperature", f"{df_room['Temperature'].mean():.2f} °C")
-col3.metric("💧 Avg Humidity", f"{df_room['Humidity'].mean():.2f} %")
+col1.metric("Total Energy (kW)", f"{df_filtered['Power (kW)'].sum():,.2f}")
+col2.metric("Avg Temp (°C)", f"{df_filtered['Temperature (°C)'].mean():.1f}")
+col3.metric("Avg Humidity (%)", f"{df_filtered['Humidity (%)'].mean():.1f}")
 
-# Power Trend
-st.subheader("📈 Power Usage Over Time")
-fig_power = px.line(df_grouped, x=df_grouped.index, y="Power", markers=True, title="Power Consumption")
-st.plotly_chart(fig_power, use_container_width=True)
+st.markdown("---")
 
-# Temperature & Humidity
-st.subheader("🌡️ Temperature and 💧 Humidity Trends")
+# Charts
+st.subheader("⚡ Energy Usage Over Time")
+fig_energy = px.line(df_agg, 
+    x="Week" if view_mode == "Weekly" else "Month" if view_mode == "Monthly" else "Year", 
+    y="Power (kW)", 
+    color="Room",
+    markers=True, 
+    title="Energy Consumption Trend"
+)
+st.plotly_chart(fig_energy, use_container_width=True)
+
+st.subheader("🌡️ Temperature and Humidity")
 col4, col5 = st.columns(2)
 
 with col4:
-    fig_temp = px.area(df_grouped, x=df_grouped.index, y="Temperature", title="Temperature Trend")
+    fig_temp = px.bar(df_agg, x="Room", y="Temperature (°C)", color="Room", title="Avg Temperature")
     st.plotly_chart(fig_temp, use_container_width=True)
 
 with col5:
-    fig_hum = px.bar(df_grouped, x=df_grouped.index, y="Humidity", title="Humidity Trend")
+    fig_hum = px.pie(df_agg, values="Humidity (%)", names="Room", title="Humidity Share by Room")
     st.plotly_chart(fig_hum, use_container_width=True)
 
-# Room-wise Power Share
-st.subheader("📊 Room-wise Power Contribution")
-room_power = df.groupby("Room")["Power"].sum().reset_index()
-fig_donut = px.pie(room_power, names="Room", values="Power", hole=0.4)
-st.plotly_chart(fig_donut, use_container_width=True)
-
-# Footer
-st.markdown("---")
-st.caption("📊 Built by Mani | Smart Home Automation | Streamlit + GitHub")
+st.markdown("Made with ❤️ by [YourName] | Data from 8-Year Smart Home Simulation")
