@@ -7,7 +7,7 @@ st.set_page_config(page_title="Smart Home Dashboard", layout="wide")
 
 # ---------- Load Data ----------
 df = pd.read_csv("Smart_Automation_Home_System.csv")
-df['DateTime'] = pd.to_datetime(df['DateTime'])
+df['DateTime'] = pd.to_datetime(df['DateTime'], format="%d-%m-%Y %H:%M")
 
 # ---------- Sidebar ----------
 st.sidebar.image("assets/logo.png", width=120)
