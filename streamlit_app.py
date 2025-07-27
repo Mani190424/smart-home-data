@@ -10,7 +10,13 @@ df = pd.read_csv("Smart_Automation_Home_System.csv")
 df['DateTime'] = pd.to_datetime(df['DateTime'], format="%d-%m-%Y %H:%M")
 
 # ---------- Sidebar ----------
-st.sidebar.image("assets/logo.png", width=120)
+import os
+logo_path = os.path.join("assets", "logo.png")
+if os.path.exists(logo_path):
+    st.sidebar.image(logo_path, width=120)
+else:
+    st.sidebar.warning("Logo not found")
+
 st.sidebar.title("Smart Home Menu")
 room_list = df['Room'].unique().tolist()
 selected_room = st.sidebar.selectbox("Select Room", options=room_list)
