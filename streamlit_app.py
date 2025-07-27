@@ -1,70 +1,131 @@
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import datetime
+from fpdf import FPDF
 
-st.set_page_config(page_title="Smart Home Dashboard", layout="wide")
+# -----------------------
+# 1. LOGIN PAGE
+# -----------------------
+def login():
+    st.title("🔐 Smart Home Dashboard Login")
+    password = st.text_input("Enter Password", type="password")
+    if password == "admin123":
+        st.session_state["authenticated"] = True
+        st.rerun()
+    elif password:
+        st.warning("Incorrect password")
 
-@st.cache_data
-def load_data():
-    url = "https://raw.githubusercontent.com/Mani190424/smart-home-data/main/smart_home_8yr_simulated.csv"
-    df = pd.read_csv(url)
-    df['Date'] = pd.to_datetime(df['Date'])
-    return df
+if "authenticated" not in st.session_state:
+    st.session_state["authenticated"] = False
 
+if not st.session_state["authenticated"]:
+    login()
+    st.stop()
 
-df = load_data()
+# -----------------------
+# 2. LOAD DATA
+# -----------------------
+url = "https://raw.githubusercontent.com/Mani190424/smart-home-data/refs/heads/main/Smart_Automation_Home_System(in).csv"
+df = pd.read_csv(url)
 
-# Sidebar Filters
-st.sidebar.title("🔧 Filters")
-room_filter = st.sidebar.multiselect("Select Room", options=df['Room'].unique(), default=df['Room'].unique())
-view_mode = st.sidebar.radio("Select View", ["Weekly", "Monthly", "Yearly"])
+# Rename columns for ease
+df.rename(columns={
+    "Temperature (°C)": "Temperature",
+    "Humidity (%)": "Humidity",
+    "Energy Consumption (kWh)": "Energy"
+}, inplace=True)
 
-df_filtered = df[df['Room'].isin(room_filter)]
+# Parse dates
+df["Date"] = pd.to_datetime(df["Date"], dayfirst=True, errors='coerce')
 
-# View Aggregation
-if view_mode == "Weekly":
-    group_cols = ['Year', 'Week', 'Room']
-elif view_mode == "Monthly":
-    group_cols = ['Year', 'Month', 'Room']
-else:
-    group_cols = ['Year', 'Room']
+# Add Date_only
+df["Date_only"] = df["Date"].dt.date
 
-df_agg = df_filtered.groupby(group_cols).agg({
-    'Power (kW)': 'sum',
-    'Temperature (°C)': 'mean',
-    'Humidity (%)': 'mean'
-}).reset_index()
+# -----------------------
+# 3. SIDEBAR CONTROLS
+# -----------------------
+st.sidebar.title("📊 Dashboard Controls")
+selected_room = st.sidebar.selectbox("Select Room", df["Room"].unique())
+view_option = st.sidebar.radio("View Mode", ["Daily", "Weekly", "Monthly"])
 
-# KPIs
-st.title("📊 Smart Home Automation Dashboard")
+# Filter by Room
+filtered_df = df[df["Room"] == selected_room]
+
+# Resample if needed
+if view_option == "Weekly":
+    filtered_df = filtered_df.resample("W-MON", on="Date").mean(numeric_only=True).reset_index()
+elif view_option == "Monthly":
+    filtered_df = filtered_df.resample("M", on="Date").mean(numeric_only=True).reset_index()
+
+# -----------------------
+# 4. MAIN DASHBOARD
+# -----------------------
+st.title("🏠 Smart Home Automation Dashboard")
+st.subheader(f"Room: {selected_room} | View: {view_option}")
+
+# KPI Cards
 col1, col2, col3 = st.columns(3)
-col1.metric("Total Energy (kW)", f"{df_filtered['Power (kW)'].sum():,.2f}")
-col2.metric("Avg Temp (°C)", f"{df_filtered['Temperature (°C)'].mean():.1f}")
-col3.metric("Avg Humidity (%)", f"{df_filtered['Humidity (%)'].mean():.1f}")
+col1.metric("⚡ Total Energy", f"{filtered_df['Energy'].sum():.2f} kWh")
+col2.metric("🌡️ Avg Temp", f"{filtered_df['Temperature'].mean():.1f} °C")
+col3.metric("💧 Avg Humidity", f"{filtered_df['Humidity'].mean():.1f} %")
 
-st.markdown("---")
-
-# Charts
-st.subheader("⚡ Energy Usage Over Time")
-fig_energy = px.line(df_agg, 
-    x="Week" if view_mode == "Weekly" else "Month" if view_mode == "Monthly" else "Year", 
-    y="Power (kW)", 
-    color="Room",
-    markers=True, 
-    title="Energy Consumption Trend"
+# Line Chart with average line
+fig = px.line(filtered_df, x="Date", y="Energy", title="Energy Usage Over Time")
+fig.add_hline(
+    y=filtered_df["Energy"].mean(),
+    line_dash="dash", line_color="green",
+    annotation_text="Average", annotation_position="top left"
 )
-st.plotly_chart(fig_energy, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True)
 
-st.subheader("🌡️ Temperature and Humidity")
-col4, col5 = st.columns(2)
+# -----------------------
+# 5. APPLIANCE TOGGLE
+# -----------------------
+st.subheader("🛠️ Appliances")
+colA, colB, colC = st.columns(3)
+ac = colA.toggle("AC", key="ac")
+fan = colB.toggle("Fan", key="fan")
+light = colC.toggle("Light", key="light")
 
-with col4:
-    fig_temp = px.bar(df_agg, x="Room", y="Temperature (°C)", color="Room", title="Avg Temperature")
-    st.plotly_chart(fig_temp, use_container_width=True)
+st.info(f"Appliance States — AC: {'On' if ac else 'Off'}, Fan: {'On' if fan else 'Off'}, Light: {'On' if light else 'Off'}")
 
-with col5:
-    fig_hum = px.pie(df_agg, values="Humidity (%)", names="Room", title="Humidity Share by Room")
-    st.plotly_chart(fig_hum, use_container_width=True)
+# -----------------------
+# 6. EXPORT OPTIONS
+# -----------------------
+def convert_df(df):
+    return df.to_csv(index=False).encode('utf-8')
 
-st.markdown("Made with ❤️ by [YourName] | Data from 8-Year Smart Home Simulation")
+csv_data = convert_df(filtered_df)
+st.sidebar.download_button("⬇️ Export CSV", data=csv_data, file_name="filtered_data.csv", mime='text/csv')
+
+# Export PDF
+class PDF(FPDF):
+    def header(self):
+        self.set_font("Arial", "B", 12)
+        self.cell(200, 10, f"Smart Home Report - {selected_room}", ln=True, align="C")
+    def footer(self):
+        self.set_y(-15)
+        self.set_font("Arial", "I", 8)
+        self.cell(0, 10, f"Page {self.page_no()}", align="C")
+    def add_table(self, data):
+        self.set_font("Arial", size=10)
+        self.cell(40, 10, "Date", 1)
+        self.cell(30, 10, "Energy", 1)
+        self.cell(30, 10, "Temp", 1)
+        self.cell(30, 10, "Humidity", 1)
+        self.ln()
+        for i, row in data.iterrows():
+            self.cell(40, 10, str(row["Date"])[:10], 1)
+            self.cell(30, 10, f"{row['Energy']:.2f}", 1)
+            self.cell(30, 10, f"{row['Temperature']:.1f}", 1)
+            self.cell(30, 10, f"{row['Humidity']:.1f}", 1)
+            self.ln()
+
+if st.sidebar.button("📄 Export PDF"):
+    pdf = PDF()
+    pdf.add_page()
+    pdf.add_table(filtered_df.head(30))
+    pdf.output("smart_home_report.pdf")
+    with open("smart_home_report.pdf", "rb") as f:
+        st.sidebar.download_button("📥 Download PDF", data=f, file_name="smart_home_report.pdf")
