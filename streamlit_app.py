@@ -19,7 +19,10 @@ else:
 
 
 # --- Clean and preprocess ---
-st.write("Loaded Columns:", df.columns.tolist())
+df.columns = df.columns.str.strip()  # clean whitespace
+df.columns = df.columns.str.title()  # converts to Title case
+df['Date'] = pd.to_datetime(df['Date'])
+
 df['Date'] = pd.to_datetime(df['Date'])
 df['Week'] = df['Date'].dt.isocalendar().week
 df['Month'] = df['Date'].dt.to_period('M').astype(str)
