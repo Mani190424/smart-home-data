@@ -4,7 +4,8 @@ import plotly.express as px
 from datetime import datetime
 
 # Load your dataset
-df = pd.read_csv("smart_home_8yr_simulated.csv")
+df = pd.read_csv("https://raw.githubusercontent.com/Mani190424/smart-home-data/main/smart_home_8yr_simulated.csv")
+
 
 # --- Clean and preprocess ---
 df['Date'] = pd.to_datetime(df['Date'])
