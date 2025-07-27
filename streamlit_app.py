@@ -1,109 +1,66 @@
 import streamlit as st
 import pandas as pd
-from fpdf import FPDF
-from datetime import datetime
+import plotly.express as px
 
-st.set_page_config(layout="wide", page_title="Smart Home Energy Dashboard")
+st.set_page_config("Smart Home Energy Dashboard", layout="wide")
 
-# Load and cache data
+# Load CSV data from GitHub
 @st.cache_data
 def load_data():
     url = "https://raw.githubusercontent.com/Mani190424/smart-home-data/main/smart_home_8yr_simulated.csv"
     df = pd.read_csv(url)
-    df.columns = df.columns.str.strip()  # clean whitespace
-    if 'Date' not in df.columns:
-        st.error("❌ 'Date' column not found in the dataset.")
-        st.stop()
+    df.columns = df.columns.str.strip()
     df['Date'] = pd.to_datetime(df['Date'])
     return df
 
 df = load_data()
 
-# Sidebar filters
+# Sidebar Filters
 st.sidebar.header("🔧 Filters")
-rooms = df['Room'].unique().tolist()
-selected_room = st.sidebar.selectbox("Select Room", rooms)
-
+room_list = df["Room"].unique().tolist()
+selected_room = st.sidebar.selectbox("Select Room", room_list)
 timeframe = st.sidebar.radio("Select Timeframe", ["Weekly", "Monthly", "Yearly"])
-query_params = st.query_params
-query_params.update({"room": selected_room, "timeframe": timeframe})
 
-# Filter data
-filtered_df = df[df['Room'] == selected_room]
+# Filter and Resample Data
+df_room = df[df["Room"] == selected_room]
 
-# Timeframe aggregation
 if timeframe == "Weekly":
-    filtered_df['Period'] = filtered_df['Date'].dt.to_period('W').dt.start_time
+    df_grouped = df_room.resample("W-Mon", on="Date").mean(numeric_only=True)
 elif timeframe == "Monthly":
-    filtered_df['Period'] = filtered_df['Date'].dt.to_period('M').dt.start_time
+    df_grouped = df_room.resample("M", on="Date").mean(numeric_only=True)
 else:
-    filtered_df['Period'] = filtered_df['Date'].dt.to_period('Y').dt.start_time
+    df_grouped = df_room.resample("Y", on="Date").mean(numeric_only=True)
 
-grouped = filtered_df.groupby('Period').agg({
-    'Power (kW)': 'sum',
-    'Temperature (°C)': 'mean',
-    'Humidity (%)': 'mean'
-}).reset_index()
-
-# KPI cards
+# Header and KPIs
 st.title("🏠 Smart Home Energy Dashboard")
 col1, col2, col3 = st.columns(3)
-col1.metric("⚡ Total Energy Used", f"{filtered_df['Power (kW)'].sum():.2f} kW")
-col2.metric("🌡 Avg Temp", f"{filtered_df['Temperature (°C)'].mean():.1f} °C")
-col3.metric("💧 Avg Humidity", f"{filtered_df['Humidity (%)'].mean():.1f} %")
+col1.metric("⚡ Total Power Used", f"{df_room['Power'].sum():,.2f} kWh")
+col2.metric("🌡️ Avg Temperature", f"{df_room['Temperature'].mean():.2f} °C")
+col3.metric("💧 Avg Humidity", f"{df_room['Humidity'].mean():.2f} %")
 
-# Room Appliance Switch
-st.subheader(f"🔌 Appliance Power Switch – {selected_room}")
-switch_col = st.columns(len(rooms))
-switch_states = {}
-for i, room in enumerate(rooms):
-    switch_states[room] = switch_col[i].toggle(f"{room}", value=True)
+# Power Trend
+st.subheader("📈 Power Usage Over Time")
+fig_power = px.line(df_grouped, x=df_grouped.index, y="Power", markers=True, title="Power Consumption")
+st.plotly_chart(fig_power, use_container_width=True)
 
-st.markdown("---")
+# Temperature & Humidity
+st.subheader("🌡️ Temperature and 💧 Humidity Trends")
+col4, col5 = st.columns(2)
 
-# Charts
-st.subheader(f"📈 {timeframe} Trends for {selected_room}")
-chart_type = st.selectbox("Choose Chart Type", ["Line", "Bar"])
-if chart_type == "Line":
-    st.line_chart(grouped.set_index('Period')[['Power (kW)', 'Temperature (°C)', 'Humidity (%)']])
-else:
-    st.bar_chart(grouped.set_index('Period')[['Power (kW)', 'Temperature (°C)', 'Humidity (%)']])
+with col4:
+    fig_temp = px.area(df_grouped, x=df_grouped.index, y="Temperature", title="Temperature Trend")
+    st.plotly_chart(fig_temp, use_container_width=True)
 
-# Export options
-st.subheader("📤 Export Data")
-col_csv, col_pdf = st.columns(2)
+with col5:
+    fig_hum = px.bar(df_grouped, x=df_grouped.index, y="Humidity", title="Humidity Trend")
+    st.plotly_chart(fig_hum, use_container_width=True)
 
-with col_csv:
-    csv = filtered_df.to_csv(index=False).encode('utf-8')
-    st.download_button("Download CSV", csv, "smart_home_filtered.csv", "text/csv")
-
-with col_pdf:
-    class PDF(FPDF):
-        def header(self):
-            self.set_font("Arial", "B", 12)
-            self.cell(0, 10, f"{selected_room} - {timeframe} Report", ln=True, align="C")
-
-        def table(self, data):
-            self.set_font("Arial", size=10)
-            col_widths = [40, 30, 30, 30]
-            headers = ['Date', 'Power (kW)', 'Temp (°C)', 'Humidity (%)']
-            for i, h in enumerate(headers):
-                self.cell(col_widths[i], 10, h, border=1)
-            self.ln()
-            for _, row in data.iterrows():
-                self.cell(col_widths[0], 10, str(row['Date'].date()), border=1)
-                self.cell(col_widths[1], 10, f"{row['Power (kW)']:.2f}", border=1)
-                self.cell(col_widths[2], 10, f"{row['Temperature (°C)']:.1f}", border=1)
-                self.cell(col_widths[3], 10, f"{row['Humidity (%)']:.1f}", border=1)
-                self.ln()
-
-    pdf = PDF()
-    pdf.add_page()
-    pdf.table(filtered_df.head(20))  # First 20 rows
-    pdf_output = pdf.output(dest='S').encode('latin1')
-
-    st.download_button("Download PDF", pdf_output, "smart_home_report.pdf", "application/pdf")
+# Room-wise Power Share
+st.subheader("📊 Room-wise Power Contribution")
+room_power = df.groupby("Room")["Power"].sum().reset_index()
+fig_donut = px.pie(room_power, names="Room", values="Power", hole=0.4)
+st.plotly_chart(fig_donut, use_container_width=True)
 
 # Footer
 st.markdown("---")
-st.caption("📊 Built with ❤️ using Streamlit · Updated with room switch, timeframe toggle, export options.")
+st.caption("📊 Built by Mani | Smart Home Automation | Streamlit + GitHub")
