@@ -2,81 +2,88 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from datetime import datetime
+import calendar
 
-st.set_page_config(page_title="Smart Home Dashboard", layout="wide")
+# --- Page Config ---
+st.set_page_config("Smart Home Dashboard", layout="wide")
 
-# ---------- Load Data ----------
-df = pd.read_csv("Smart_Automation_Home_System.csv")
-df['DateTime'] = pd.to_datetime(df['DateTime'], format="%d-%m-%Y %H:%M")
+# --- Logo & Sidebar ---
+with st.sidebar:
+    st.image("assets/logo.png", width=120)
+    st.title("Smart Home Control")
+    room = st.selectbox("Select Room", ["All", "Bedroom1", "Bedroom2", "Kitchen", "Living Room", "Store Room"])
+    view_mode = st.radio("View Mode", ["Weekly", "Monthly", "Yearly"])
+    st.markdown("---")
+    st.caption("Powered by Firebase 🔥")
 
-# ---------- Sidebar ----------
-import os
-logo_path = os.path.join("assets", "logo.png")
-if os.path.exists(logo_path):
-    st.sidebar.image(logo_path, width=120)
+# --- Load Data ---
+url = "https://raw.githubusercontent.com/Mani190424/smart-home-data/main/smart_home_8yr_simulated.csv"
+df = pd.read_csv(url)
+
+# --- Fix Date Format ---
+df['Date'] = pd.to_datetime(df['Date'])
+
+# --- Set Query Params ---
+st.query_params["room"] = room
+st.query_params["view"] = view_mode
+
+# --- Filter by Room ---
+if room != "All":
+    df = df[df["Room"] == room]
+
+# --- Resample Based on View Mode ---
+if view_mode == "Weekly":
+    df_grouped = df.resample("W", on="Date").mean(numeric_only=True)
+elif view_mode == "Monthly":
+    df_grouped = df.resample("M", on="Date").mean(numeric_only=True)
 else:
-    st.sidebar.warning("Logo not found")
+    df_grouped = df.resample("Y", on="Date").mean(numeric_only=True)
 
-st.sidebar.title("Smart Home Menu")
-room_list = df['Room'].unique().tolist()
-selected_room = st.sidebar.selectbox("Select Room", options=room_list)
-
-# Filter data
-room_data = df[df['Room'] == selected_room]
-
-# ---------- Welcome Card ----------
-today = pd.to_datetime(datetime.now().date())
-today_data = room_data[room_data['DateTime'].dt.date == today.date()]
-avg_temp = round(today_data['Temperature (°C)'].mean(), 1) if not today_data.empty else "N/A"
-
-st.markdown(
-    f"""
-    <div style="background-color:#b299ff; padding: 25px; border-radius: 20px; color: white; text-align: left; margin-bottom: 20px;">
-        <h2 style="margin-bottom: 0;">👋 MANI</h2>
-        <p style="margin-top: 5px; font-size: 18px;">Welcome home</p>
-        <h3 style="margin: 10px 0;">🌡️ Weather {avg_temp}°C &nbsp; | &nbsp; ☀️ Sunny Day</h3>
+# --- Welcome Card ---
+today = datetime.now()
+weather_status = "☀️ Sunny"
+temp_now = round(df['Temperature'].mean(), 1)
+st.markdown(f"""
+    <div style='padding:20px; background: linear-gradient(90deg, #1e3c72, #2a5298); border-radius: 12px; color:white'>
+        <h2>Welcome Home 🌟</h2>
+        <p style='font-size:16px;'>Today is <b>{today.strftime('%A, %d %B %Y')}</b></p>
+        <p style='font-size:20px;'>Weather: {weather_status} | Temp: {temp_now}°C</p>
     </div>
-    """, unsafe_allow_html=True
-)
+""", unsafe_allow_html=True)
 
-# ---------- KPIs ----------
-col1, col2 = st.columns(2)
+st.markdown("### 🔍 Room Overview")
 
+# --- KPI Cards ---
+col1, col2, col3, col4 = st.columns(4)
 with col1:
-    temp_now = round(room_data['Temperature (°C)'].iloc[-1], 1)
-    st.metric(label="🌡️ Current Temperature", value=f"{temp_now} °C")
-
+    st.metric("⚡ Total Energy", f"{df['Power'].sum():,.2f} kWh")
 with col2:
-    humidity_now = round(room_data['Humidity (%)'].iloc[-1], 1)
-    st.metric(label="💧 Current Humidity", value=f"{humidity_now} %")
+    st.metric("🌡️ Avg Temp", f"{df['Temperature'].mean():.1f}°C")
+with col3:
+    st.metric("💧 Avg Humidity", f"{df['Humidity'].mean():.1f}%")
+with col4:
+    motion_detected = df["Motion"].sum()
+    st.metric("🚶 Motion Count", f"{int(motion_detected)}")
 
-# ---------- Charts Section ----------
-st.markdown("### 📊 Weekly Energy Consumption")
+# --- Trend Chart ---
+st.markdown(f"### 📈 {view_mode} Energy Usage Trend")
+fig = px.line(df_grouped, x=df_grouped.index, y="Power", title=f"{room} Energy Usage ({view_mode})")
+st.plotly_chart(fig, use_container_width=True)
 
-df['Week'] = df['Week'].astype(str)
-weekly_energy = df.groupby(['Week', 'Room'])['Energy Consumption (kWh)'].sum().reset_index()
-room_energy = weekly_energy[weekly_energy['Room'] == selected_room]
+# --- Room Appliance Switch ---
+st.markdown("### 🛋 Room Appliance Switches")
+room_states = {}
+room_cols = st.columns(5)
+rooms = ["Bedroom1", "Bedroom2", "Kitchen", "Living Room", "Store Room"]
+for idx, r in enumerate(rooms):
+    with room_cols[idx]:
+        room_states[r] = st.toggle(f"{r}", value=True, key=f"{r}_toggle")
 
-bar_fig = px.bar(
-    room_energy,
-    x='Week',
-    y='Energy Consumption (kWh)',
-    color='Week',
-    title='Weekly Energy Usage (kWh)',
-    template='plotly_white',
-    color_discrete_sequence=px.colors.sequential.Purples
-)
-st.plotly_chart(bar_fig, use_container_width=True)
+# --- Room Filter Table ---
+if room != "All":
+    st.markdown("### 🗂 Room Data Preview")
+    st.dataframe(df.tail(50), use_container_width=True)
 
-# ---------- Footer Toggles ----------
-st.markdown("### 🏠 Room Controls")
-
-room_toggle = st.columns(len(room_list))
-for i, room in enumerate(room_list):
-    with room_toggle[i]:
-        if st.button(room):
-            st.experimental_set_query_params(room=room)
-
-# ---------- Raw Data Table ----------
-with st.expander("📄 View Raw Data"):
-    st.dataframe(room_data.tail(100), use_container_width=True)
+# --- Footer ---
+st.markdown("---")
+st.caption("© 2025 Smart Home Automation | Built with ❤️ by Makka")
