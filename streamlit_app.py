@@ -22,7 +22,7 @@ df = load_data()
 # ---------- Sidebar Filters ----------
 st.sidebar.title("Filters")
 room = st.sidebar.selectbox("Select Room", options=["All"] + sorted(df["Room"].unique().tolist()))
-timeframe = st.sidebar.radio("Select Timeframe", ["Weekly", Monthly", "Yearly"])
+timeframe = st.sidebar.radio("Select Timeframe", ["Weekly", "Monthly", "Yearly"])
 export_format = st.sidebar.radio("Export Format", ["CSV", "PDF"])
 
 if room != "All":
