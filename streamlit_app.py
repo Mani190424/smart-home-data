@@ -1,100 +1,109 @@
 import streamlit as st
 import pandas as pd
-import requests
-from io import StringIO
-from datetime import datetime
 from fpdf import FPDF
+from datetime import datetime
 
-st.set_page_config(page_title="Smart Home Energy Dashboard", layout="wide")
+st.set_page_config(layout="wide", page_title="Smart Home Energy Dashboard")
 
-# ---------- Load Data ----------
+# Load and cache data
 @st.cache_data
 def load_data():
     url = "https://raw.githubusercontent.com/Mani190424/smart-home-data/main/smart_home_8yr_simulated.csv"
-    response = requests.get(url)
-    df = pd.read_csv(StringIO(response.text))
-    df.columns = df.columns.str.strip()
+    df = pd.read_csv(url)
+    df.columns = df.columns.str.strip()  # clean whitespace
+    if 'Date' not in df.columns:
+        st.error("❌ 'Date' column not found in the dataset.")
+        st.stop()
     df['Date'] = pd.to_datetime(df['Date'])
     return df
 
 df = load_data()
 
-# ---------- Sidebar Filters ----------
-st.sidebar.title("Filters")
-room = st.sidebar.selectbox("Select Room", options=["All"] + sorted(df["Room"].unique().tolist()))
+# Sidebar filters
+st.sidebar.header("🔧 Filters")
+rooms = df['Room'].unique().tolist()
+selected_room = st.sidebar.selectbox("Select Room", rooms)
+
 timeframe = st.sidebar.radio("Select Timeframe", ["Weekly", "Monthly", "Yearly"])
-export_format = st.sidebar.radio("Export Format", ["CSV", "PDF"])
+query_params = st.query_params
+query_params.update({"room": selected_room, "timeframe": timeframe})
 
-if room != "All":
-    df = df[df["Room"] == room]
+# Filter data
+filtered_df = df[df['Room'] == selected_room]
 
-# ---------- Time Grouping ----------
+# Timeframe aggregation
 if timeframe == "Weekly":
-    df['Period'] = df['Date'].dt.to_period('W').dt.start_time
+    filtered_df['Period'] = filtered_df['Date'].dt.to_period('W').dt.start_time
 elif timeframe == "Monthly":
-    df['Period'] = df['Date'].dt.to_period('M').dt.start_time
+    filtered_df['Period'] = filtered_df['Date'].dt.to_period('M').dt.start_time
 else:
-    df['Period'] = df['Date'].dt.to_period('Y').dt.start_time
+    filtered_df['Period'] = filtered_df['Date'].dt.to_period('Y').dt.start_time
 
-# ---------- KPI Cards ----------
-total_power = df["Power"].sum()
-avg_temp = df["Temperature"].mean()
-avg_humidity = df["Humidity"].mean()
+grouped = filtered_df.groupby('Period').agg({
+    'Power (kW)': 'sum',
+    'Temperature (°C)': 'mean',
+    'Humidity (%)': 'mean'
+}).reset_index()
 
-st.markdown("## 🔌 Smart Home Energy Dashboard")
-kpi1, kpi2, kpi3 = st.columns(3)
-kpi1.metric("⚡ Total Power (kWh)", f"{total_power:.2f}")
-kpi2.metric("🌡 Avg. Temperature (°C)", f"{avg_temp:.1f}")
-kpi3.metric("💧 Avg. Humidity (%)", f"{avg_humidity:.1f}")
+# KPI cards
+st.title("🏠 Smart Home Energy Dashboard")
+col1, col2, col3 = st.columns(3)
+col1.metric("⚡ Total Energy Used", f"{filtered_df['Power (kW)'].sum():.2f} kW")
+col2.metric("🌡 Avg Temp", f"{filtered_df['Temperature (°C)'].mean():.1f} °C")
+col3.metric("💧 Avg Humidity", f"{filtered_df['Humidity (%)'].mean():.1f} %")
 
-# ---------- Charts ----------
-st.markdown("### 📈 Energy Usage Over Time")
-chart_data = df.groupby("Period")[["Power"]].sum()
-st.line_chart(chart_data)
+# Room Appliance Switch
+st.subheader(f"🔌 Appliance Power Switch – {selected_room}")
+switch_col = st.columns(len(rooms))
+switch_states = {}
+for i, room in enumerate(rooms):
+    switch_states[room] = switch_col[i].toggle(f"{room}", value=True)
 
-st.markdown("### 🏠 Room-wise Power Usage")
-room_power = df.groupby("Room")["Power"].sum().sort_values()
-st.bar_chart(room_power)
+st.markdown("---")
 
-# ---------- Export ----------
-def export_csv(data):
-    data.to_csv("exported_data.csv", index=False)
-    st.success("✅ CSV Exported")
-    st.download_button("📥 Download CSV", data.to_csv(index=False), file_name="smart_home_export.csv", mime="text/csv")
+# Charts
+st.subheader(f"📈 {timeframe} Trends for {selected_room}")
+chart_type = st.selectbox("Choose Chart Type", ["Line", "Bar"])
+if chart_type == "Line":
+    st.line_chart(grouped.set_index('Period')[['Power (kW)', 'Temperature (°C)', 'Humidity (%)']])
+else:
+    st.bar_chart(grouped.set_index('Period')[['Power (kW)', 'Temperature (°C)', 'Humidity (%)']])
 
-def export_pdf(data):
-    pdf = FPDF()
+# Export options
+st.subheader("📤 Export Data")
+col_csv, col_pdf = st.columns(2)
+
+with col_csv:
+    csv = filtered_df.to_csv(index=False).encode('utf-8')
+    st.download_button("Download CSV", csv, "smart_home_filtered.csv", "text/csv")
+
+with col_pdf:
+    class PDF(FPDF):
+        def header(self):
+            self.set_font("Arial", "B", 12)
+            self.cell(0, 10, f"{selected_room} - {timeframe} Report", ln=True, align="C")
+
+        def table(self, data):
+            self.set_font("Arial", size=10)
+            col_widths = [40, 30, 30, 30]
+            headers = ['Date', 'Power (kW)', 'Temp (°C)', 'Humidity (%)']
+            for i, h in enumerate(headers):
+                self.cell(col_widths[i], 10, h, border=1)
+            self.ln()
+            for _, row in data.iterrows():
+                self.cell(col_widths[0], 10, str(row['Date'].date()), border=1)
+                self.cell(col_widths[1], 10, f"{row['Power (kW)']:.2f}", border=1)
+                self.cell(col_widths[2], 10, f"{row['Temperature (°C)']:.1f}", border=1)
+                self.cell(col_widths[3], 10, f"{row['Humidity (%)']:.1f}", border=1)
+                self.ln()
+
+    pdf = PDF()
     pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt="Smart Home Dashboard Summary", ln=True, align="C")
-    pdf.ln(10)
+    pdf.table(filtered_df.head(20))  # First 20 rows
+    pdf_output = pdf.output(dest='S').encode('latin1')
 
-    # Add KPIs
-    pdf.cell(200, 10, txt=f"Total Power: {total_power:.2f} kWh", ln=True)
-    pdf.cell(200, 10, txt=f"Avg Temp: {avg_temp:.1f} °C", ln=True)
-    pdf.cell(200, 10, txt=f"Avg Humidity: {avg_humidity:.1f} %", ln=True)
-    pdf.ln(10)
+    st.download_button("Download PDF", pdf_output, "smart_home_report.pdf", "application/pdf")
 
-    # Table Header
-    pdf.set_font("Arial", "B", size=10)
-    for col in data.columns[:5]:
-        pdf.cell(38, 10, col, 1)
-    pdf.ln()
-
-    # Table Rows
-    pdf.set_font("Arial", size=9)
-    for i, row in data.iterrows():
-        for item in row[:5]:
-            pdf.cell(38, 10, str(item)[:15], 1)
-        pdf.ln()
-        if i > 25: break  # Limit rows
-
-    pdf.output("dashboard_summary.pdf")
-    with open("dashboard_summary.pdf", "rb") as f:
-        st.download_button("📥 Download PDF", f, file_name="dashboard_summary.pdf")
-
-st.markdown("### 📤 Export Data")
-if export_format == "CSV":
-    export_csv(df)
-else:
-    export_pdf(df)
+# Footer
+st.markdown("---")
+st.caption("📊 Built with ❤️ using Streamlit · Updated with room switch, timeframe toggle, export options.")
