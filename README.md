@@ -80,7 +80,8 @@ Usually at: `http://localhost:8501`
 
 ## 📸 Screenshots
 
-![alt text](image-1.png)
+<img width="1920" height="1008" alt="image-1" src="https://github.com/user-attachments/assets/0a8b91f9-de5a-4ec6-80d3-ef953dd55cfc" />
+
 
 ---
 
