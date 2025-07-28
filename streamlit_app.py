@@ -4,53 +4,12 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 
-# ---------------- USER PROFILE HANDLING ----------------
-st.sidebar.header("👤 User Profile")
-
-if "user_profile" not in st.session_state:
-    st.session_state.user_profile = {
-        "name": "",
-        "email": "",
-        "mobile": "",
-        "image": None,
-        "submitted": False
-    }
-
-profile = st.session_state.user_profile
-
-if not profile["submitted"]:
-    name = st.sidebar.text_input("Name", value=profile["name"])
-    email = st.sidebar.text_input("Email", value=profile["email"])
-    mobile = st.sidebar.text_input("Mobile", value=profile["mobile"])
-    image = st.sidebar.file_uploader("Upload Profile Pic", type=["png", "jpg"])
-
-    if st.sidebar.button("✅ Save Profile"):
-        if name and email and mobile and image:
-            profile["name"] = name
-            profile["email"] = email
-            profile["mobile"] = mobile
-            profile["image"] = image
-            profile["submitted"] = True
-            st.session_state.user_profile = profile
-            st.rerun()
-        else:
-            st.sidebar.warning("Please fill all fields and upload a profile picture.")
-else:
-    with st.sidebar.expander("📄 Profile Summary", expanded=True):
-        st.image(profile["image"], width=100)
-        st.markdown(f"**Name:** {profile['name']}")
-        st.markdown(f"**Email:** {profile['email']}")
-        st.markdown(f"**Mobile:** {profile['mobile']}")
-
-    if st.sidebar.button("✏️ Edit Profile"):
-        profile["submitted"] = False
-        st.session_state.user_profile = profile
-        st.rerun()
+st.set_page_config(page_title="Smart Home Energy Dashboard", layout="wide")
 
 # -------------- Theme Toggle --------------
 theme = st.sidebar.radio("🎨 Theme", ["🌞 Light", "🌙 Dark"])
 primary_color = "#000000" if theme == "🌞 Light" else "#fca6bc"
-bg_color = "#dda0dd" if theme == "🌞 Light" else "#0E1117"
+bg_color = "#9BFFEC" if theme == "🌞 Light" else "#0E1117"
 font_color = "#000000" if theme == "🌞 Light" else "#fca6bc"
 st.markdown(f"""
     <style>
@@ -87,32 +46,47 @@ view_by = st.sidebar.radio("View By", ["Daily", "Weekly", "Monthly", "Yearly"])
 # Apply date filter
 df = df[(df["Date"] >= pd.to_datetime(start_date)) & (df["Date"] <= pd.to_datetime(end_date))]
 
-# Room Tab
-rooms = df["Room"].dropna().unique().tolist()
+# Room Icons Map
+room_icons = {
+    "Living Room": "🛋",
+    "Bedroom1": "🧻",
+    "Bedroom2": "🛌",
+    "Kitchen": "🍽",
+    "Store Room": "📦"
+}
 
+# Room Tabs with Icons
+rooms = df["Room"].dropna().unique().tolist()
 if not rooms:
     st.warning("No room data available for selected date range.")
     st.stop()
 
-room_tabs = st.tabs(rooms)
+tab_labels = [f"{room_icons.get(room, '🏠')} {room}" for room in rooms]
+room_tabs = st.tabs(tab_labels)
+
+# Export helper
+def convert_df(df):
+    return df.to_csv(index=False).encode('utf-8')
 
 for i, room in enumerate(rooms):
     with room_tabs[i]:
-        st.markdown(f"## 🚪 {room}")
+        icon = room_icons.get(room, "🏠")
+        st.markdown(f"""
+            <div style='background-color:#f0f2f6; padding:10px 16px; border-radius:12px; margin-bottom:20px;'>
+                <h2 style='margin:0;'>{icon} {room}</h2>
+            </div>
+        """, unsafe_allow_html=True)
 
         filtered_df = df[df['Room'] == room]
         room_appliances = sorted(filtered_df['Appliance'].dropna().unique())
         selected_appliances = st.multiselect("🔌 Select Appliances", options=room_appliances, default=room_appliances, key=f"appliance_{room}")
         filtered_df = filtered_df[filtered_df['Appliance'].isin(selected_appliances)]
 
-        if view_by == "Weekly":
-            group_col = "Week"
-        elif view_by == "Monthly":
-            group_col = "Month"
-        elif view_by == "Yearly":
-            group_col = "Year"
-        else:
-            group_col = "Date"
+        group_col = {
+            "Weekly": "Week",
+            "Monthly": "Month",
+            "Yearly": "Year"
+        }.get(view_by, "Date")
 
         grouped = filtered_df.groupby(group_col).agg({
             "Energy Consumption (kWh)": "sum",
@@ -165,8 +139,10 @@ for i, room in enumerate(rooms):
         st.subheader("🌡 Temperature (°C)")
         if chart_type == "Line":
             fig2 = px.line(grouped, x=group_col, y="Temperature (°C)")
+            fig2.update_traces(line=dict(color="red"))
         elif chart_type == "Bar":
             fig2 = px.bar(grouped, x=group_col, y="Temperature (°C)")
+            fig2.update_traces(marker_color="crimson")
         elif chart_type == "Pie":
             fig2 = px.pie(grouped, names=group_col, values="Temperature (°C)")
         elif chart_type == "Donut":
@@ -184,13 +160,12 @@ for i, room in enumerate(rooms):
             fig3 = px.pie(grouped, names=group_col, values="Humidity (%)", hole=0.4)
         st.plotly_chart(fig3, use_container_width=True)
 
-# Export Data
-def convert_df(df):
-    return df.to_csv(index=False).encode('utf-8')
-
-st.sidebar.download_button(
-    label="📁 Export Filtered Data",
-    data=convert_df(df),
-    file_name='filtered_smart_home_data.csv',
-    mime='text/csv'
-)
+        # Room-wise Export
+        st.markdown("### 📥 Download This Room's Data")
+        st.download_button(
+            label="📄 Export Room Data (CSV)",
+            data=convert_df(filtered_df),
+            file_name=f"{room.lower().replace(' ', '_')}_data.csv",
+            mime="text/csv",
+            key=f"csv_{room}"
+        )
