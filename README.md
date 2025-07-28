@@ -65,15 +65,9 @@ Usually at: `http://localhost:8501`
 
 ```
 📦 smart-home-firebase-dashboard/
-├── assets/
-│   ├── preview.gif
-│   ├── banner.jpg
-│   ├── icons/ (temp.png, humidity.png, etc.)
-│   └── custom.css
 ├── streamlit_app.py
 ├── requirements.txt
 ├── README.md
-└── project_summary.pdf  (optional)
 ```
 
 ---
