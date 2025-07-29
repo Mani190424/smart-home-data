@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.figure_factory as ff
+import plotly.graph_objects as go
 from datetime import datetime
 
 st.set_page_config(page_title="Smart Home Energy Dashboard", layout="wide")
@@ -55,7 +56,6 @@ room_icons = {
     "Store Room": "📦"
 }
 
-# Room Tabs
 rooms = df["Room"].dropna().unique().tolist()
 if not rooms:
     st.warning("No room data available for selected date range.")
@@ -64,7 +64,6 @@ if not rooms:
 tab_labels = [f"{room_icons.get(room, '🏠')} {room}" for room in rooms]
 room_tabs = st.tabs(tab_labels)
 
-# Export helper
 def convert_df(df):
     return df.to_csv(index=False).encode('utf-8')
 
@@ -132,7 +131,13 @@ for i, room in enumerate(rooms):
         elif chart_type == "Bar":
             fig = px.bar(grouped, x=group_col, y="Energy Consumption (kWh)")
         elif chart_type == "Waterfall":
-            fig = px.waterfall(grouped, x=group_col, y="Energy Consumption (kWh)", title="Energy Flow")
+            fig = go.Figure(go.Waterfall(
+                name="Energy Flow",
+                x=grouped[group_col],
+                y=grouped["Energy Consumption (kWh)"],
+                connector={"line": {"color": "gray"}}
+            ))
+            fig.update_layout(title="Energy Flow (Waterfall)", waterfallgap=0.3)
         elif chart_type == "Density Curve":
             fig = ff.create_distplot([filtered_df["Energy Consumption (kWh)"].dropna()], ["Energy (kWh)"], show_hist=False)
         st.plotly_chart(fig, use_container_width=True)
