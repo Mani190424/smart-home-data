@@ -1,7 +1,7 @@
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.figure_factory as ff
 from datetime import datetime
 
 st.set_page_config(page_title="Smart Home Energy Dashboard", layout="wide")
@@ -55,7 +55,7 @@ room_icons = {
     "Store Room": "📦"
 }
 
-# Room Tabs with Icons
+# Room Tabs
 rooms = df["Room"].dropna().unique().tolist()
 if not rooms:
     st.warning("No room data available for selected date range.")
@@ -123,19 +123,21 @@ for i, room in enumerate(rooms):
             st.markdown(kpi_card("Avg Humidity", round(avg_humidity, 1), "💧", " %"), unsafe_allow_html=True)
 
         st.markdown("---")
-        chart_type = st.selectbox("📊 Select Chart Type", ["Line", "Bar", "Waterfall", "Donut"], key=f"chart_{room}")
+        chart_type = st.selectbox("📊 Select Chart Type", ["Line", "Bar", "Waterfall", "Density Curve"], key=f"chart_{room}")
 
+        # ENERGY CHART
         st.subheader("⚡ Energy Usage (kWh)")
         if chart_type == "Line":
             fig = px.line(grouped, x=group_col, y="Energy Consumption (kWh)")
         elif chart_type == "Bar":
             fig = px.bar(grouped, x=group_col, y="Energy Consumption (kWh)")
         elif chart_type == "Waterfall":
-            fig = px.pie(grouped, names=group_col, values="Energy Consumption (kWh)")
-        elif chart_type == "Donut":
-            fig = px.pie(grouped, names=group_col, values="Energy Consumption (kWh)", hole=0.4)
+            fig = px.waterfall(grouped, x=group_col, y="Energy Consumption (kWh)", title="Energy Flow")
+        elif chart_type == "Density Curve":
+            fig = ff.create_distplot([filtered_df["Energy Consumption (kWh)"].dropna()], ["Energy (kWh)"], show_hist=False)
         st.plotly_chart(fig, use_container_width=True)
 
+        # TEMPERATURE CHART
         st.subheader("🌡 Temperature (°C)")
         if chart_type == "Line":
             fig2 = px.line(grouped, x=group_col, y="Temperature (°C)")
@@ -144,21 +146,26 @@ for i, room in enumerate(rooms):
             fig2 = px.bar(grouped, x=group_col, y="Temperature (°C)")
             fig2.update_traces(marker_color="crimson")
         elif chart_type == "Waterfall":
-            fig2 = px.Waterfall(grouped, names=group_col, values="Temperature (°C)")
-        elif chart_type == "Donut":
-            fig2 = px.pie(grouped, names=group_col, values="Temperature (°C)", hole=0.4)
-        st.plotly_chart(fig2, use_container_width=True)
+            st.info("Waterfall chart is not supported for temperature.")
+            fig2 = None
+        elif chart_type == "Density Curve":
+            fig2 = ff.create_distplot([filtered_df["Temperature (°C)"].dropna()], ["Temperature (°C)"], show_hist=False)
+        if fig2:
+            st.plotly_chart(fig2, use_container_width=True)
 
+        # HUMIDITY CHART
         st.subheader("💧 Humidity (%)")
         if chart_type == "Line":
             fig3 = px.line(grouped, x=group_col, y="Humidity (%)")
         elif chart_type == "Bar":
             fig3 = px.bar(grouped, x=group_col, y="Humidity (%)")
         elif chart_type == "Waterfall":
-            fig3 = px.Waterfall(grouped, names=group_col, values="Humidity (%)")
-        elif chart_type == "Donut":
-            fig3 = px.pie(grouped, names=group_col, values="Humidity (%)", hole=0.4)
-        st.plotly_chart(fig3, use_container_width=True)
+            st.info("Waterfall chart is not supported for humidity.")
+            fig3 = None
+        elif chart_type == "Density Curve":
+            fig3 = ff.create_distplot([filtered_df["Humidity (%)"].dropna()], ["Humidity (%)"], show_hist=False)
+        if fig3:
+            st.plotly_chart(fig3, use_container_width=True)
 
         # Room-wise Export
         st.markdown("### 📥 Download This Room's Data")
