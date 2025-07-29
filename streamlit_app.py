@@ -123,14 +123,14 @@ for i, room in enumerate(rooms):
             st.markdown(kpi_card("Avg Humidity", round(avg_humidity, 1), "💧", " %"), unsafe_allow_html=True)
 
         st.markdown("---")
-        chart_type = st.selectbox("📊 Select Chart Type", ["Line", "Bar", "Pie", "Donut"], key=f"chart_{room}")
+        chart_type = st.selectbox("📊 Select Chart Type", ["Line", "Bar", "Waterfall", "Donut"], key=f"chart_{room}")
 
         st.subheader("⚡ Energy Usage (kWh)")
         if chart_type == "Line":
             fig = px.line(grouped, x=group_col, y="Energy Consumption (kWh)")
         elif chart_type == "Bar":
             fig = px.bar(grouped, x=group_col, y="Energy Consumption (kWh)")
-        elif chart_type == "Pie":
+        elif chart_type == "Waterfall":
             fig = px.pie(grouped, names=group_col, values="Energy Consumption (kWh)")
         elif chart_type == "Donut":
             fig = px.pie(grouped, names=group_col, values="Energy Consumption (kWh)", hole=0.4)
@@ -143,8 +143,8 @@ for i, room in enumerate(rooms):
         elif chart_type == "Bar":
             fig2 = px.bar(grouped, x=group_col, y="Temperature (°C)")
             fig2.update_traces(marker_color="crimson")
-        elif chart_type == "Pie":
-            fig2 = px.pie(grouped, names=group_col, values="Temperature (°C)")
+        elif chart_type == "Waterfall":
+            fig2 = px.Waterfall(grouped, names=group_col, values="Temperature (°C)")
         elif chart_type == "Donut":
             fig2 = px.pie(grouped, names=group_col, values="Temperature (°C)", hole=0.4)
         st.plotly_chart(fig2, use_container_width=True)
@@ -154,8 +154,8 @@ for i, room in enumerate(rooms):
             fig3 = px.line(grouped, x=group_col, y="Humidity (%)")
         elif chart_type == "Bar":
             fig3 = px.bar(grouped, x=group_col, y="Humidity (%)")
-        elif chart_type == "Pie":
-            fig3 = px.pie(grouped, names=group_col, values="Humidity (%)")
+        elif chart_type == "Waterfall":
+            fig3 = px.Waterfall(grouped, names=group_col, values="Humidity (%)")
         elif chart_type == "Donut":
             fig3 = px.pie(grouped, names=group_col, values="Humidity (%)", hole=0.4)
         st.plotly_chart(fig3, use_container_width=True)
