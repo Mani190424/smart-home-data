@@ -260,9 +260,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 theme = st.sidebar.radio("🎨 Theme", ["🌞 Light", "🌙 Dark", "🌛 Synthwave"])
-primary_color = "#000000" if theme == "🌞 Light" else ("#960D30" if theme == "🌙 Dark" else "#f500ff")
-bg_color = "#F8FAFC" if theme == "🌞 Light" else ("#0E1117" if theme == "🌙 Dark" else "#0f0f1a")
-font_color = "#000000" if theme == "🌞 Light" else ("#a01034" if theme == "🌙 Dark" else "#f500ff")
+primary_color = "#FAF4F4" if theme == "🌞 Light" else ("#960D30" if theme == "🌙 Dark" else "#d47ad7")
+bg_color = "#F8FAFC" if theme == "🌞 Light" else ("#F0F2F5" if theme == "🌙 Dark" else "#0f0f1a")
+font_color = "#E1E8EC" if theme == "🌞 Light" else ("#a01034" if theme == "🌙 Dark" else "#fc81fc")
 
 st.markdown(f"""
     <style>
@@ -325,20 +325,20 @@ df = load_data()
 
 # Sidebar Filters
 st.sidebar.header("🗂️Filter ")
-start_date = st.sidebar.date_input("From", df["Date"].min().date())
-end_date = st.sidebar.date_input("To", df["Date"].max().date())
+start_date = st.sidebar.date_input("📍From", df["Date"].min().date())
+end_date = st.sidebar.date_input("📍To", df["Date"].max().date())
 
 df = df[(df["Date"] >= pd.to_datetime(start_date)) & (df["Date"] <= pd.to_datetime(end_date))]
 if df.empty:
     st.warning("No data for selected date range.")
     st.stop()
 
-group_by = st.sidebar.radio("📅 Group Data By", ["Daily", "Weekly", "Monthly", "Yearly"])
+group_by = st.sidebar.radio("📅 Group Data By", ["⌛Daily", "🗓️Weekly", "📅Monthly", "📊Yearly"])
 group_col = {
-    "Daily": "Date",
-    "Weekly": "Week",
-    "Monthly": "Month",
-    "Yearly": "Year"
+    "⌛Daily": "Date",
+    "🗓️Weekly": "Week",
+    "📅Monthly": "Month",
+    "📊Yearly": "Year"
 }[group_by]
 
 # 1. KPIs
@@ -358,8 +358,8 @@ col2.markdown(f"<div class='kpi-card'><h4>🌡 Avg Temp</h4><h2>{kpi_grouped['Te
 col3.markdown(f"<div class='kpi-card'><h4>💧 Avg Humidity</h4><h2>{kpi_grouped['Humidity (%)'].mean():.1f} %</h2></div>", unsafe_allow_html=True)
 
 # 2. Chart
-st.markdown("<div class='section-header'>📈 Energy, Temperature & Humidity Trend</div>", unsafe_allow_html=True)
-chart_type = st.selectbox("Select Chart Type", ["Line", "Bar", "Waterfall", "Solid Gauge"], key="chart-type")
+st.markdown("<div class='section-header'>📈 Energy, 🌡Temperature(°C) &💧Humidity  (%)Trend</div>", unsafe_allow_html=True)
+chart_type = st.selectbox("Select Chart Type", ["📈 Line", "📊 Bar", "🌊 Waterfall", "⏲ Solid Gauge"], key="chart-type")
 
 if chart_type != "Solid Gauge":
     animation_args = dict(frame=dict(duration=500, redraw=True), transition=dict(duration=500))
@@ -421,7 +421,7 @@ fig_room_app = px.line(room_app, x=group_col, y="Energy Consumption (kWh)", colo
 st.plotly_chart(fig_room_app, use_container_width=True)
 
 # 7. Top Appliance Only
-st.markdown(" <div class='section-header'>⭐ Top Appliance by Energy</div>", unsafe_allow_html=True)
+st.markdown(" <div class='section-header'>🚀 Top Appliance by Energy</div>", unsafe_allow_html=True)
 top_appl = compare_df.groupby(["Room", "Appliance"])["Energy Consumption (kWh)"].sum().reset_index()
 top1 = top_appl.sort_values(["Room", "Energy Consumption (kWh)"], ascending=[True, False]).groupby("Room").head(1)
 for room in compare_rooms:
