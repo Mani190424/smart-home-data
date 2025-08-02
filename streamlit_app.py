@@ -44,10 +44,8 @@ start_date = st.sidebar.date_input("From", df["Date"].min().date(), min_value=da
 end_date = st.sidebar.date_input("To", df["Date"].max().date(), min_value=datetime(years_range[0], 1, 1), max_value=datetime(years_range[1], 12, 31))
 view_by = st.sidebar.radio("View By", ["Daily", "Weekly", "Monthly", "Yearly"])
 
-# Apply date filter
 df = df[(df["Date"] >= pd.to_datetime(start_date)) & (df["Date"] <= pd.to_datetime(end_date))]
 
-# Room Icons Map
 room_icons = {
     "Living Room": "🛋",
     "Bedroom1": "🧻",
@@ -82,10 +80,34 @@ for i, room in enumerate(rooms):
         filtered_df = filtered_df[filtered_df['Appliance'].isin(selected_appliances)]
 
         group_col = {
+            "Daily": "Date",
             "Weekly": "Week",
             "Monthly": "Month",
             "Yearly": "Year"
-        }.get(view_by, "Date")
+        }[view_by]
+
+        # ✅ Appliance-wise Comparison Chart with Grouping
+        st.markdown("### 🔌 Appliance-wise Energy Consumption")
+        appliance_grouped = (
+            filtered_df.groupby([group_col, "Appliance"])['Energy Consumption (kWh)']
+            .sum()
+            .reset_index()
+        )
+
+        if appliance_grouped.empty:
+            st.info("No energy data for selected appliances.")
+        else:
+            fig_appliance = px.bar(
+                appliance_grouped,
+                x=group_col,
+                y="Energy Consumption (kWh)",
+                color="Appliance",
+                barmode="stack",
+                title="Appliance-wise Energy Consumption Over Time",
+                labels={"Energy Consumption (kWh)": "Energy (kWh)"},
+                template="plotly_dark" if theme == "🌙 Dark" else "plotly_white"
+            )
+            st.plotly_chart(fig_appliance, use_container_width=True)
 
         grouped = filtered_df.groupby(group_col).agg({
             "Energy Consumption (kWh)": "sum",
@@ -93,9 +115,10 @@ for i, room in enumerate(rooms):
             "Humidity (%)": "mean"
         }).reset_index()
 
-        total_energy = filtered_df["Energy Consumption (kWh)"].sum()
-        avg_temp = filtered_df["Temperature (°C)"].mean()
-        avg_humidity = filtered_df["Humidity (%)"].mean()
+        # ✅ Dynamic KPIs based on view_by grouping
+        total_energy = grouped["Energy Consumption (kWh)"].sum()
+        avg_temp = grouped["Temperature (°C)"].mean()
+        avg_humidity = grouped["Humidity (%)"].mean()
 
         def kpi_card(title, value, icon="", unit=""):
             return f"""
@@ -124,7 +147,6 @@ for i, room in enumerate(rooms):
         st.markdown("---")
         chart_type = st.selectbox("📊 Select Chart Type", ["Line", "Bar", "Waterfall", "Density Curve"], key=f"chart_{room}")
 
-        # ENERGY CHART
         st.subheader("⚡ Energy Usage (kWh)")
         if chart_type == "Line":
             fig = px.line(grouped, x=group_col, y="Energy Consumption (kWh)")
@@ -142,7 +164,6 @@ for i, room in enumerate(rooms):
             fig = ff.create_distplot([filtered_df["Energy Consumption (kWh)"].dropna()], ["Energy (kWh)"], show_hist=False)
         st.plotly_chart(fig, use_container_width=True)
 
-        # TEMPERATURE CHART
         st.subheader("🌡 Temperature (°C)")
         if chart_type == "Line":
             fig2 = px.line(grouped, x=group_col, y="Temperature (°C)")
@@ -158,7 +179,6 @@ for i, room in enumerate(rooms):
         if fig2:
             st.plotly_chart(fig2, use_container_width=True)
 
-        # HUMIDITY CHART
         st.subheader("💧 Humidity (%)")
         if chart_type == "Line":
             fig3 = px.line(grouped, x=group_col, y="Humidity (%)")
@@ -172,7 +192,6 @@ for i, room in enumerate(rooms):
         if fig3:
             st.plotly_chart(fig3, use_container_width=True)
 
-        # Room-wise Export
         st.markdown("### 📥 Download This Room's Data")
         st.download_button(
             label="📄 Export Room Data (CSV)",
