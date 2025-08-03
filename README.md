@@ -8,13 +8,12 @@ A fully interactive, mobile-friendly Smart Home Energy Dashboard built with **St
 ## 📌 Features
 
 - 📅 Date Range Filtering (2015–2024)
-- 📊 Customizable Chart Views: Line, Bar, Gantt, Area
+- 📊 Customizable Chart Views: Line, Bar, Gauge, Waterfall
 - 🏠 Room-wise KPI Cards: Energy, Temperature, Humidity
 - 🔌 Appliance Energy Trend
 - 🆚 Compare Energy Between Rooms
 - 🚀 Top Appliance per Room
 - 💾 Downloadable Reports
-- 📱 Mobile Optimized UI with Toggle, Animated Tabs
 
 ---
 
@@ -54,7 +53,7 @@ streamlit run streamlit_app.py
 
 ## 🔗 Data Source
 
-`Smart_Automation_Home_System_in.csv` — preloaded via GitHub URL.
+  [`Smart_Automation_Home_System_in.csv`-(https://raw.githubusercontent.com/Mani190424/smart-home-data/refs/heads/main/Smart_Automation_Home_System_in.csv")']
 
 ---
 
