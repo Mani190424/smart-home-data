@@ -406,8 +406,10 @@ fig1 = fig2 = fig3 = None
 
 if chart_type in ["line", "bar"]:
     fig1 = px.line(kpi_grouped, x=group_col, y="Energy Consumption (kWh)") if chart_type == "line" else px.bar(kpi_grouped, x=group_col, y="Energy Consumption (kWh)")
+
 elif chart_type == "waterfall":
     fig1 = go.Figure(go.Waterfall(x=kpi_grouped[group_col], y=kpi_grouped["Energy Consumption (kWh)"]))
+
 elif chart_type == "gauge":
     def solid_gauge(val, title, max_range):
         return go.Figure(go.Indicator(mode="gauge+number", value=val, title={"text": title}, gauge={"axis": {"range": [0, max_range]}}))
@@ -415,19 +417,37 @@ elif chart_type == "gauge":
     latest_energy = room_df["Energy Consumption (kWh)"].dropna().iloc[-1] if not room_df["Energy Consumption (kWh)"].dropna().empty else 0
     fig1 = solid_gauge(latest_energy, "Current Energy (kWh)", max(room_df["Energy Consumption (kWh)"].max(), 1))
 if fig1: st.plotly_chart(fig1, use_container_width=True)
+st.markdown("<div class='section-header'>🌡 Temperature (°C) Trend</div>", unsafe_allow_html=True)
 
-st.markdown("<div class='section-header'>🌡Temperature(°C)Trend</div>", unsafe_allow_html=True)
+fig2 = None  # Initialize
 
 if chart_type in ["line", "bar"]:
-    fig2 = px.line(kpi_grouped, x=group_col, y="Temperature (°C)") if chart_type == "line" else px.bar(kpi_grouped, x=group_col, y="Temperature (°C)")
+    fig2 = px.line(kpi_grouped, x=group_col, y="Temperature (°C)", color_discrete_sequence=["red"]) if chart_type == "line" else px.bar(kpi_grouped, x=group_col, y="Temperature (°C)", color_discrete_sequence=["red"])
+
 elif chart_type == "waterfall":
-    fig2 = go.Figure(go.Waterfall(x=kpi_grouped[group_col], y=kpi_grouped["Temperature (°C)"]))
+    fig2 = go.Figure(go.Waterfall(
+        x=kpi_grouped[group_col],
+        y=kpi_grouped["Temperature (°C)"],
+        connector={"line": {"color": "red"}},
+        increasing={"marker": {"color": "tomato"}},
+        decreasing={"marker": {"color": "darkred"}},
+    ))
+
 elif chart_type == "gauge":
     def solid_gauge(val, title, max_range):
-        return go.Figure(go.Indicator(mode="gauge+number", value=val, title={"text": title}, gauge={"axis": {"range": [0, max_range]}}))
+        return go.Figure(go.Indicator(
+            mode="gauge+number", 
+            value=val, 
+            title={"text": title}, 
+            gauge={"axis": {"range": [0, max_range]}}
+        ))
     
+    latest_temp = room_df["Temperature (°C)"].dropna().iloc[-1] if not room_df["Temperature (°C)"].dropna().empty else 0 
     fig2 = solid_gauge(latest_temp, "Current Temp (°C)", 50)
-    if fig2: st.plotly_chart(fig2, use_container_width=True)
+
+# ✅ Safe rendering
+if fig2 is not None:
+    st.plotly_chart(fig2, use_container_width=True)
 
 st.markdown("<div class='section-header'>💧Humidity(%) Trend</div>", unsafe_allow_html=True)
 if chart_type in ["line", "bar"]:
