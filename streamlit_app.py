@@ -20,7 +20,7 @@ st.markdown("""
     .mobile-toggle {
         position: fixed;
         top: 12px;
-        left: 12px;
+        Right: 12px;
         z-index: 9999;
         width: 40px;
         height: 40px;
