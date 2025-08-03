@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -7,18 +6,24 @@ from datetime import datetime
 
 st.set_page_config(page_title="Smart Home Energy Dashboard", layout="wide")
 
-# Theme
+# --- Mobile/Desktop Toggle Logic ---
+if 'mobile_mode' not in st.session_state:
+    st.session_state.mobile_mode = False
+
+def toggle_mobile():
+    st.session_state.mobile_mode = not st.session_state.mobile_mode
+
 st.markdown("<meta name='viewport' content='width=device-width, initial-scale=1.0'>", unsafe_allow_html=True)
 
 st.markdown("""
     <style>
     .mobile-toggle {
         position: fixed;
-        top: 70px;
-        Right: 12px;
+        top: 12px;
+        left: 12px;
         z-index: 9999;
-        width: 36px;
-        height: 36px;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
         background: linear-gradient(135deg, #6EE7B7, #3B82F6);
         display: flex;
@@ -35,7 +40,7 @@ st.markdown("""
     }
     .mobile-toggle i {
         color: white;
-        font-size: 20opx;
+        font-size: 20px;
     }
     .section-header {
         padding: 12px;
@@ -53,6 +58,23 @@ st.markdown("""
     @keyframes fadeInHeader {
         from { opacity: 0; transform: translateY(-10px); }
         to { opacity: 1; transform: translateY(0); }
+    }
+    .download-button:hover {
+        transform: scale(1.05);
+        transition: all 0.3s ease;
+        background-color: #38bdf8 !important;
+        color: white !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    .stDownloadButton button {
+        border-radius: 8px;
+        padding: 10px 16px;
+        font-weight: bold;
+        color: white;
+        background: linear-gradient(90deg, #36D1DC, #5B86E5);
+        border: none;
+        transition: all 0.3s ease;
+        margin: 8px 0;
     }
     .stTabs [role="tab"] {
         background: rgba(255, 255, 255, 0.05);
@@ -86,7 +108,7 @@ st.markdown("""
         cursor: pointer;
         padding: 14px;
         width: 100%;
-        text-align:Right;
+        text-align: left;
         border: none;
         outline: none;
         font-size: 18px;
@@ -103,8 +125,19 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
     </style>
-    <div class='mobile-toggle'><i>📱</i></div>
+    <div class='mobile-toggle' onclick='parent.postMessage({ type: "mobile_toggle" }, "*")'><i>📱</i></div>
 """, unsafe_allow_html=True)
+
+# JavaScript toggle hook
+st.components.v1.html("""
+<script>
+window.addEventListener("message", (e) => {
+  if (e.data.type === "mobile_toggle") {
+    fetch("/_stcore/toggle_mobile", { method: "POST" });
+  }
+});
+</script>
+""", height=0)
 
 # Custom CSS for the Top Appliance Table
 st.markdown("""
