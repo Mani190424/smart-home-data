@@ -53,7 +53,7 @@ streamlit run streamlit_app.py
 
 ## 🔗 Data Source
 
-  [`Smart_Automation_Home_System_in.csv`-(https://raw.githubusercontent.com/Mani190424/smart-home-data/refs/heads/main/Smart_Automation_Home_System_in.csv")']
+  [`Smart_Automation_Home_System_in.csv`-(https://raw.githubusercontent.com/Mani190424/smart-home-data/refs/heads/main/Smart_Automation_Home_System_in.csv")]
 
 ---
 
