@@ -409,64 +409,50 @@ chart_type = chart_map[chart_label]
 
 # Initialize charts
 fig1 = fig2 = fig3 = None
-
 st.markdown("<div class='section-header'>⚡ Energy Consumption (kWh)</div>", unsafe_allow_html=True)
 
-fig_energy = None
-if chart_type == "📊 Bar":
-    fig_energy = px.bar(kpi_grouped, x=group_col, y="Energy Consumption (kWh)", color_discrete_sequence=["#22c55e"])
-elif chart_type == "📈 Line":
-    fig_energy = px.line(kpi_grouped, x=group_col, y="Energy Consumption (kWh)", color_discrete_sequence=["#22c55e"])
-elif chart_type == "📐 Gantt":
-    df_energy_gantt = kpi_grouped.copy()
-    df_energy_gantt["Start"] = df_energy_gantt[group_col]
-    df_energy_gantt["End"] = df_energy_gantt["Start"] + pd.Timedelta(days=1)
-    df_energy_gantt["Sensor"] = "Energy"
-    fig_energy = px.timeline(df_energy_gantt, x_start="Start", x_end="End", y="Sensor", color="Energy Consumption (kWh)", color_continuous_scale="greens")
-    fig_energy.update_yaxes(autorange="reversed")
-elif chart_type == "🌈 Area":
-    fig_energy = px.area(kpi_grouped, x=group_col, y="Energy Consumption (kWh)", color_discrete_sequence=["#22c55e"])
-
-if fig_energy is not None:
-    st.plotly_chart(fig_energy, use_container_width=True)
+if not kpi_grouped.empty:
+    if chart_type == "📈 Line":
+        fig1 = px.line(kpi_grouped, x=group_col, y="Energy Consumption (kWh)")
+    elif chart_type == "📊 Bar":
+        fig1 = px.bar(kpi_grouped, x=group_col, y="Energy Consumption (kWh)")
+    elif chart_type == "📐 Gantt":
+        fig1 = px.timeline(kpi_grouped, x_start=group_col, x_end=group_col, y="Energy Consumption (kWh)")
+    elif chart_type == "🌈 Area":
+        fig1 = px.area(kpi_grouped, x=group_col, y="Energy Consumption (kWh)")
+    st.plotly_chart(fig1, use_container_width=True)
+else:
+    st.warning("⚠️ No energy data for the selected filter.")
+    
 st.markdown("<div class='section-header'>🌡️ Temperature (°C)</div>", unsafe_allow_html=True)
 
-fig_temp = None
-if chart_type == "📊 Bar":
-    fig_temp = px.bar(kpi_grouped, x=group_col, y="Temperature (°C)", color_discrete_sequence=["red"])
-elif chart_type == "📈 Line":
-    fig_temp = px.line(kpi_grouped, x=group_col, y="Temperature (°C)", color_discrete_sequence=["red"])
-elif chart_type == "📐 Gantt":
-    df_temp_gantt = kpi_grouped.copy()
-    df_temp_gantt["Start"] = df_temp_gantt[group_col]
-    df_temp_gantt["End"] = df_temp_gantt["Start"] + pd.Timedelta(days=1)
-    df_temp_gantt["Sensor"] = "Temperature"
-    fig_temp = px.timeline(df_temp_gantt, x_start="Start", x_end="End", y="Sensor", color="Temperature (°C)", color_continuous_scale="reds")
-    fig_temp.update_yaxes(autorange="reversed")
-elif chart_type == "🌈 Area":
-    fig_temp = px.area(kpi_grouped, x=group_col, y="Temperature (°C)", color_discrete_sequence=["orangered"])
+if not kpi_grouped.empty:
+    if chart_type == "📈 Line":
+        fig2 = px.line(kpi_grouped, x=group_col, y="Temperature (°C)", color_discrete_sequence=["red"])
+    elif chart_type == "📊 Bar":
+        fig2 = px.bar(kpi_grouped, x=group_col, y="Temperature (°C)", color_discrete_sequence=["red"])
+    elif chart_type == "📐 Gantt":
+        fig2 = px.timeline(kpi_grouped, x_start=group_col, x_end=group_col, y="Temperature (°C)")
+    elif chart_type == "🌈 Area":
+        fig2 = px.area(kpi_grouped, x=group_col, y="Temperature (°C)", color_discrete_sequence=["red"])
+    st.plotly_chart(fig2, use_container_width=True)
+else:
+    st.warning("⚠️ No temperature data for the selected filter.")
 
-if fig_temp is not None:
-    st.plotly_chart(fig_temp, use_container_width=True)
 st.markdown("<div class='section-header'>💧 Humidity (%)</div>", unsafe_allow_html=True)
 
-fig_hum = None
-if chart_type == "📊 Bar":
-    fig_hum = px.bar(kpi_grouped, x=group_col, y="Humidity (%)", color_discrete_sequence=["#3b82f6"])
-elif chart_type == "📈 Line":
-    fig_hum = px.line(kpi_grouped, x=group_col, y="Humidity (%)", color_discrete_sequence=["#3b82f6"])
-elif chart_type == "📐 Gantt":
-    df_hum_gantt = kpi_grouped.copy()
-    df_hum_gantt["Start"] = df_hum_gantt[group_col]
-    df_hum_gantt["End"] = df_hum_gantt["Start"] + pd.Timedelta(days=1)
-    df_hum_gantt["Sensor"] = "Humidity"
-    fig_hum = px.timeline(df_hum_gantt, x_start="Start", x_end="End", y="Sensor", color="Humidity (%)", color_continuous_scale="blues")
-    fig_hum.update_yaxes(autorange="reversed")
-elif chart_type == "🌈 Area":
-    fig_hum = px.area(kpi_grouped, x=group_col, y="Humidity (%)", color_discrete_sequence=["skyblue"])
-
-if fig_hum is not None:
-    st.plotly_chart(fig_hum, use_container_width=True)
+if not kpi_grouped.empty:
+    if chart_type == "📈 Line":
+        fig3 = px.line(kpi_grouped, x=group_col, y="Humidity (%)")
+    elif chart_type == "📊 Bar":
+        fig3 = px.bar(kpi_grouped, x=group_col, y="Humidity (%)")
+    elif chart_type == "📐 Gantt":
+        fig3 = px.timeline(kpi_grouped, x_start=group_col, x_end=group_col, y="Humidity (%)")
+    elif chart_type == "🌈 Area":
+        fig3 = px.area(kpi_grouped, x=group_col, y="Humidity (%)")
+    st.plotly_chart(fig3, use_container_width=True)
+else:
+    st.warning("⚠️ No humidity data for the selected filter.")
 
 # 3. Appliance Trend
 st.markdown("<div class='section-header'>🔌 Appliance-wise Trend</div>", unsafe_allow_html=True)
