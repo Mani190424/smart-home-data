@@ -394,31 +394,29 @@ col3.markdown(f"<div class='kpi-card'><h4>💧 Avg Humidity</h4><h2>{kpi_grouped
 
 # 2. Chart
 st.markdown("<div class='section-header'>📈 Energy Trend</div>", unsafe_allow_html=True)
-chart_type = st.selectbox("Chart Type", ["📊 Bar", "📈 Line", "📐 Gantt", "🌈 Area"])
-
+chart_map = {
+    "📈 Line": "line",
+    "📊 Bar": "bar",
+    "🌊 Waterfall": "waterfall",
+    "⏲ Solid Gauge": "gauge"
+}
 chart_label = st.selectbox("Select Chart Type", list(chart_map.keys()), key="chart-type")
 chart_type = chart_map[chart_label]
 fig1 = fig2 = fig3 = None 
-st.markdown("<div class='section-header'>⚡ Energy Consumption (kWh)</div>", unsafe_allow_html=True)
 
-fig_energy = None
-if chart_type == "📊 Bar":
-    fig_energy = px.bar(kpi_grouped, x=group_col, y="Energy Consumption (kWh)", color_discrete_sequence=["#22c55e"])
-elif chart_type == "📈 Line":
-    fig_energy = px.line(kpi_grouped, x=group_col, y="Energy Consumption (kWh)", color_discrete_sequence=["#22c55e"])
-elif chart_type == "📐 Gantt":
-    df_energy_gantt = kpi_grouped.copy()
-    df_energy_gantt["Start"] = df_energy_gantt[group_col]
-    df_energy_gantt["End"] = df_energy_gantt["Start"] + pd.Timedelta(days=1)
-    df_energy_gantt["Sensor"] = "Energy"
-    fig_energy = px.timeline(df_energy_gantt, x_start="Start", x_end="End", y="Sensor", color="Energy Consumption (kWh)", color_continuous_scale="greens")
-    fig_energy.update_yaxes(autorange="reversed")
-elif chart_type == "🌈 Area":
-    fig_energy = px.area(kpi_grouped, x=group_col, y="Energy Consumption (kWh)", color_discrete_sequence=["#22c55e"])
+if chart_type in ["line", "bar"]:
+    fig1 = px.line(kpi_grouped, x=group_col, y="Energy Consumption (kWh)") if chart_type == "line" else px.bar(kpi_grouped, x=group_col, y="Energy Consumption (kWh)")
 
-if fig_energy is not None:
-    st.plotly_chart(fig_energy, use_container_width=True)
+elif chart_type == "waterfall":
+    fig1 = go.Figure(go.Waterfall(x=kpi_grouped[group_col], y=kpi_grouped["Energy Consumption (kWh)"]))
 
+elif chart_type == "gauge":
+    def solid_gauge(val, title, max_range):
+        return go.Figure(go.Indicator(mode="gauge+number", value=val, title={"text": title}, gauge={"axis": {"range": [0, max_range]}}))
+    
+    latest_energy = room_df["Energy Consumption (kWh)"].dropna().iloc[-1] if not room_df["Energy Consumption (kWh)"].dropna().empty else 0
+    fig1 = solid_gauge(latest_energy, "Current Energy (kWh)", max(room_df["Energy Consumption (kWh)"].max(), 1))
+if fig1: st.plotly_chart(fig1, use_container_width=True)
 st.markdown("<div class='section-header'>🌡 Temperature (°C) Trend</div>", unsafe_allow_html=True)
 
 fig2 = None  # Initialize
