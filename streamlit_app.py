@@ -394,11 +394,21 @@ col3.markdown(f"<div class='kpi-card'><h4>💧 Avg Humidity</h4><h2>{kpi_grouped
 
 # 2. Chart
 st.markdown("<div class='section-header'>📈 Energy Trend</div>", unsafe_allow_html=True)
-chart_map = st.selectbox("Chart map", ["📊 Bar", "📈 Line", "📐 Gantt", "🌈 Area"])
 
-chart_label = st.selectbox("Select Chart_ Map", list(chart_map.keys()), key="chart-map")
-chart_map = chart_map[chart_label]
-fig1 = fig2 = fig3 = None 
+# Chart type options
+chart_map = {
+    "📊 Bar": "bar",
+    "📈 Line": "line",
+    "📐 Gantt": "gantt",
+    "🌈 Area": "area"
+}
+
+# Selector
+chart_label = st.selectbox("Chart Type", list(chart_map.keys()), key="chart-type")
+chart_type = chart_map[chart_label]
+
+# Initialize charts
+fig1 = fig2 = fig3 = None
 
 st.markdown("<div class='section-header'>⚡ Energy Consumption (kWh)</div>", unsafe_allow_html=True)
 
