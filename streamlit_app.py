@@ -6,6 +6,167 @@ from datetime import datetime
 
 st.set_page_config(page_title="Smart Home Energy Dashboard", layout="wide")
 
+# --- Mobile/Desktop Toggle Logic ---
+if 'mobile_mode' not in st.session_state:
+    st.session_state.mobile_mode = False
+
+def toggle_mobile():
+    st.session_state.mobile_mode = not st.session_state.mobile_mode
+
+st.markdown("<meta name='viewport' content='width=device-width, initial-scale=1.0'>", unsafe_allow_html=True)
+
+st.markdown("""
+    <style>
+    .mobile-toggle {
+        position: fixed;
+        top: 12px;
+        Right: 12px;
+        z-index: 9999;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #6EE7B7, #3B82F6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+        animation: pulse 2s infinite;
+        cursor: pointer;
+    }
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    .mobile-toggle i {
+        color: white;
+        font-size: 20px;
+    }
+    .section-header {
+        padding: 12px;
+        margin: 30px 0 10px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 22px;
+        background: linear-gradient(to right, #2c5364, #203a43, #0f2027);
+        color: white;
+        text-align: center;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+        letter-spacing: 0.5px;
+        animation: fadeInHeader 1s ease-in-out;
+    }
+    @keyframes fadeInHeader {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .download-button:hover {
+        transform: scale(1.05);
+        transition: all 0.3s ease;
+        background-color: #38bdf8 !important;
+        color: white !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    .stDownloadButton button {
+        border-radius: 8px;
+        padding: 10px 16px;
+        font-weight: bold;
+        color: white;
+        background: linear-gradient(90deg, #36D1DC, #5B86E5);
+        border: none;
+        transition: all 0.3s ease;
+        margin: 8px 0;
+    }
+    .stTabs [role="tab"] {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(12px);
+        transition: all 0.3s ease;
+        white-space: nowrap;
+        overflow: auto;
+        max-width: 200px;
+    }
+    .stTabs [role="tab"]:hover {
+        background-color: rgba(255, 255, 255, 0.15);
+        transform: scale(1.03);
+    }
+    .stTabs [role="tab"][aria-selected="true"] {
+        background: linear-gradient(135deg, #6366F1, #EC4899);
+        color: white;
+        font-weight: bold;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .stTabs [role="tablist"] {
+        display: flex;
+        overflow-x: auto;
+        overflow-y: hidden;
+        white-space: nowrap;
+        scrollbar-width: thin;
+    }
+    .collapsible {
+        background: linear-gradient(to right, #1d2671, #c33764);
+        color: white;
+        cursor: pointer;
+        padding: 14px;
+        width: 100%;
+        text-align: left;
+        border: none;
+        outline: none;
+        font-size: 18px;
+        margin-top: 15px;
+        border-radius: 10px;
+    }
+    .content {
+        padding: 0 18px;
+        display: none;
+        overflow: hidden;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    </style>
+    <div class='mobile-toggle' onclick='parent.postMessage({ type: "mobile_toggle" }, "*")'><i>📱</i></div>
+""", unsafe_allow_html=True)
+
+# JavaScript toggle hook
+st.components.v1.html("""
+<script>
+window.addEventListener("message", (e) => {
+  if (e.data.type === "mobile_toggle") {
+    fetch("/_stcore/toggle_mobile", { method: "POST" });
+  }
+});
+</script>
+""", height=0)
+
+# Custom CSS for the Top Appliance Table
+st.markdown("""
+<style>
+/* Style only the dataframes that come next */
+div[data-testid="stDataFrame"] {
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 12px;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+    background: rgba(255,255,255,0.03);
+}
+div[data-testid="stDataFrame"] table {
+    color: #f0f0f0;
+}
+div[data-testid="stDataFrame"] thead tr {
+    background: linear-gradient(to right, #141E30, #243B55);
+    color: white;
+}
+div[data-testid="stDataFrame"] tbody tr:hover {
+    background-color: rgba(255,255,255,0.1);
+}
+div[data-testid="stDataFrame"] th, div[data-testid="stDataFrame"] td {
+    padding: 12px 15px;
+    text-align: Right;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # Sidebar theme
 st.sidebar.markdown("""
     <style>
