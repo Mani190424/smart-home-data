@@ -20,7 +20,7 @@ st.markdown("""
     .mobile-toggle {
         position: fixed;
         top: 12px;
-        Right: 12px;
+        left: 12px;
         z-index: 9999;
         width: 40px;
         height: 40px;
@@ -297,9 +297,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 theme = st.sidebar.radio("🎨 Theme", ["🌞 Light", "🌙 Dark", "🌛 Synthwave"])
-primary_color = "#FAF4F4" if theme == "🌞 Light" else ("#960D30" if theme == "🌙 Dark" else "#d47ad7")
-bg_color = "#F8FAFC" if theme == "🌞 Light" else ("#F0F2F5" if theme == "🌙 Dark" else "#0f0f1a")
-font_color = "#E1E8EC" if theme == "🌞 Light" else ("#a01034" if theme == "🌙 Dark" else "#fc81fc")
+primary_color = "#FAF4F4" if theme == "🌞 Light" else ("#B21EE3AC" if theme == "🌙 Dark" else "#d47ad7")
+bg_color = "#F8FAFC" if theme == "🌞 Light" else ("#F0F2F5" if theme == "🌙 Dark" else "#151532")
+font_color = "#E1E8EC" if theme == "🌞 Light" else ("#B21EE3AC" if theme == "🌙 Dark" else "#fc81fc")
 
 st.markdown(f"""
     <style>
@@ -393,41 +393,78 @@ col2.markdown(f"<div class='kpi-card'><h4>🌡 Avg Temp</h4><h2>{kpi_grouped['Te
 col3.markdown(f"<div class='kpi-card'><h4>💧 Avg Humidity</h4><h2>{kpi_grouped['Humidity (%)'].mean():.1f} %</h2></div>", unsafe_allow_html=True)
 
 # 2. Chart
-st.markdown("<div class='section-header'>📈 Energy, 🌡Temperature(°C) &💧Humidity  (%)Trend</div>", unsafe_allow_html=True)
-chart_map = {
-    "📈 Line": "line",
-    "📊 Bar": "bar",
-    "🌊 Waterfall": "waterfall",
-    "⏲ Solid Gauge": "gauge"
-}
+st.markdown("<div class='section-header'>📈 Energy Trend</div>", unsafe_allow_html=True)
+chart_type = st.selectbox("Chart Type", ["📊 Bar", "📈 Line", "📐 Gantt", "🌈 Area"])
+
 chart_label = st.selectbox("Select Chart Type", list(chart_map.keys()), key="chart-type")
 chart_type = chart_map[chart_label]
 fig1 = fig2 = fig3 = None 
+st.markdown("<div class='section-header'>⚡ Energy Consumption (kWh)</div>", unsafe_allow_html=True)
+
+fig_energy = None
+if chart_type == "📊 Bar":
+    fig_energy = px.bar(kpi_grouped, x=group_col, y="Energy Consumption (kWh)", color_discrete_sequence=["#22c55e"])
+elif chart_type == "📈 Line":
+    fig_energy = px.line(kpi_grouped, x=group_col, y="Energy Consumption (kWh)", color_discrete_sequence=["#22c55e"])
+elif chart_type == "📐 Gantt":
+    df_energy_gantt = kpi_grouped.copy()
+    df_energy_gantt["Start"] = df_energy_gantt[group_col]
+    df_energy_gantt["End"] = df_energy_gantt["Start"] + pd.Timedelta(days=1)
+    df_energy_gantt["Sensor"] = "Energy"
+    fig_energy = px.timeline(df_energy_gantt, x_start="Start", x_end="End", y="Sensor", color="Energy Consumption (kWh)", color_continuous_scale="greens")
+    fig_energy.update_yaxes(autorange="reversed")
+elif chart_type == "🌈 Area":
+    fig_energy = px.area(kpi_grouped, x=group_col, y="Energy Consumption (kWh)", color_discrete_sequence=["#22c55e"])
+
+if fig_energy is not None:
+    st.plotly_chart(fig_energy, use_container_width=True)
+
+st.markdown("<div class='section-header'>🌡 Temperature (°C) Trend</div>", unsafe_allow_html=True)
+
+fig2 = None  # Initialize
 
 if chart_type in ["line", "bar"]:
-    fig1 = px.line(kpi_grouped, x=group_col, y="Energy Consumption (kWh)") if chart_type == "line" else px.bar(kpi_grouped, x=group_col, y="Energy Consumption (kWh)")
-    fig2 = px.line(kpi_grouped, x=group_col, y="Temperature (°C)") if chart_type == "line" else px.bar(kpi_grouped, x=group_col, y="Temperature (°C)")
-    fig3 = px.line(kpi_grouped, x=group_col, y="Humidity (%)") if chart_type == "line" else px.bar(kpi_grouped, x=group_col, y="Humidity (%)")
+    fig2 = px.line(kpi_grouped, x=group_col, y="Temperature (°C)", color_discrete_sequence=["red"]) if chart_type == "line" else px.bar(kpi_grouped, x=group_col, y="Temperature (°C)", color_discrete_sequence=["red"])
 
 elif chart_type == "waterfall":
-    fig1 = go.Figure(go.Waterfall(x=kpi_grouped[group_col], y=kpi_grouped["Energy Consumption (kWh)"]))
-    fig2 = go.Figure(go.Waterfall(x=kpi_grouped[group_col], y=kpi_grouped["Temperature (°C)"]))
+    fig2 = go.Figure(go.Waterfall(
+        x=kpi_grouped[group_col],
+        y=kpi_grouped["Temperature (°C)"],
+        connector={"line": {"color": "red"}},
+        increasing={"marker": {"color": "tomato"}},
+        decreasing={"marker": {"color": "darkred"}},
+    ))
+
+elif chart_type == "gauge":
+    def solid_gauge(val, title, max_range):
+        return go.Figure(go.Indicator(
+            mode="gauge+number", 
+            value=val, 
+            title={"text": title}, 
+            gauge={"axis": {"range": [0, max_range]}}
+        ))
+    
+    latest_temp = room_df["Temperature (°C)"].dropna().iloc[-1] if not room_df["Temperature (°C)"].dropna().empty else 0 
+    fig2 = solid_gauge(latest_temp, "Current Temp (°C)", 50)
+
+# ✅ Safe rendering
+if fig2 is not None:
+    st.plotly_chart(fig2, use_container_width=True)
+
+st.markdown("<div class='section-header'>💧Humidity(%) Trend</div>", unsafe_allow_html=True)
+if chart_type in ["line", "bar"]:
+    fig3 = px.line(kpi_grouped, x=group_col, y="Humidity (%)") if chart_type == "line" else px.bar(kpi_grouped, x=group_col, y="Humidity (%)")
+    
+elif chart_type == "waterfall":
     fig3 = go.Figure(go.Waterfall(x=kpi_grouped[group_col], y=kpi_grouped["Humidity (%)"]))
 
 elif chart_type == "gauge":
     def solid_gauge(val, title, max_range):
         return go.Figure(go.Indicator(mode="gauge+number", value=val, title={"text": title}, gauge={"axis": {"range": [0, max_range]}}))
     
-    latest_energy = room_df["Energy Consumption (kWh)"].dropna().iloc[-1] if not room_df["Energy Consumption (kWh)"].dropna().empty else 0
-    latest_temp = room_df["Temperature (°C)"].dropna().iloc[-1] if not room_df["Temperature (°C)"].dropna().empty else 0
     latest_humidity = room_df["Humidity (%)"].dropna().iloc[-1] if not room_df["Humidity (%)"].dropna().empty else 0
-
-    fig1 = solid_gauge(latest_energy, "Current Energy (kWh)", max(room_df["Energy Consumption (kWh)"].max(), 1))
-    fig2 = solid_gauge(latest_temp, "Current Temp (°C)", 50)
     fig3 = solid_gauge(latest_humidity, "Current Humidity (%)", 100)
     
-if fig1: st.plotly_chart(fig1, use_container_width=True)
-if fig2: st.plotly_chart(fig2, use_container_width=True)
 if fig3: st.plotly_chart(fig3, use_container_width=True)
 
 
