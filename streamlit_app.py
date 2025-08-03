@@ -14,8 +14,8 @@ st.markdown("""
     <style>
     .mobile-toggle {
         position: fixed;
-        top: 12px;
-        left: 12px;
+        top: 70px;
+        Right: 12px;
         z-index: 9999;
         width: 36px;
         height: 36px;
@@ -35,7 +35,7 @@ st.markdown("""
     }
     .mobile-toggle i {
         color: white;
-        font-size: 20px;
+        font-size: 20opx;
     }
     .section-header {
         padding: 12px;
@@ -86,7 +86,7 @@ st.markdown("""
         cursor: pointer;
         padding: 14px;
         width: 100%;
-        text-align: left;
+        text-align:Right;
         border: none;
         outline: none;
         font-size: 18px;
@@ -105,7 +105,6 @@ st.markdown("""
     </style>
     <div class='mobile-toggle'><i>📱</i></div>
 """, unsafe_allow_html=True)
-
 # Custom CSS for the Top Appliance Table
 st.markdown("""
 <style>
@@ -129,7 +128,7 @@ div[data-testid="stDataFrame"] tbody tr:hover {
 }
 div[data-testid="stDataFrame"] th, div[data-testid="stDataFrame"] td {
     padding: 12px 15px;
-    text-align: left;
+    text-align: Right;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -168,7 +167,6 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
-
 st.markdown("""
 <style>
 /* Change background and border */
@@ -204,7 +202,6 @@ div[data-baseweb="option"]:hover {
 }
 </style>
 """, unsafe_allow_html=True)
-
 st.markdown("""
 <style>
 /* Sidebar container */
@@ -361,29 +358,42 @@ col3.markdown(f"<div class='kpi-card'><h4>💧 Avg Humidity</h4><h2>{kpi_grouped
 
 # 2. Chart
 st.markdown("<div class='section-header'>📈 Energy, 🌡Temperature(°C) &💧Humidity  (%)Trend</div>", unsafe_allow_html=True)
-chart_type = st.selectbox("Select Chart Type", ["📈 Line", "📊 Bar", "🌊 Waterfall", "⏲ Solid Gauge"], key="chart-type")
+chart_map = {
+    "📈 Line": "line",
+    "📊 Bar": "bar",
+    "🌊 Waterfall": "waterfall",
+    "⏲ Solid Gauge": "gauge"
+}
+chart_label = st.selectbox("Select Chart Type", list(chart_map.keys()), key="chart-type")
+chart_type = chart_map[chart_label]
+fig1 = fig2 = fig3 = None 
 
-if chart_type != "Solid Gauge":
-    animation_args = dict(frame=dict(duration=500, redraw=True), transition=dict(duration=500))
-    fig1 = px.line(kpi_grouped, x=group_col, y="Energy Consumption (kWh)") if chart_type == "Line" else px.bar(kpi_grouped, x=group_col, y="Energy Consumption (kWh)")
-    fig2 = px.line(kpi_grouped, x=group_col, y="Temperature (°C)") if chart_type == "Line" else px.bar(kpi_grouped, x=group_col, y="Temperature (°C)")
-    fig3 = px.line(kpi_grouped, x=group_col, y="Humidity (%)") if chart_type == "Line" else px.bar(kpi_grouped, x=group_col, y="Humidity (%)")
-    for fig in [fig1, fig2, fig3]:
-        fig.update_layout(transition=animation_args['transition'])
-else:
+if chart_type in ["line", "bar"]:
+    fig1 = px.line(kpi_grouped, x=group_col, y="Energy Consumption (kWh)") if chart_type == "line" else px.bar(kpi_grouped, x=group_col, y="Energy Consumption (kWh)")
+    fig2 = px.line(kpi_grouped, x=group_col, y="Temperature (°C)") if chart_type == "line" else px.bar(kpi_grouped, x=group_col, y="Temperature (°C)")
+    fig3 = px.line(kpi_grouped, x=group_col, y="Humidity (%)") if chart_type == "line" else px.bar(kpi_grouped, x=group_col, y="Humidity (%)")
+
+elif chart_type == "waterfall":
+    fig1 = go.Figure(go.Waterfall(x=kpi_grouped[group_col], y=kpi_grouped["Energy Consumption (kWh)"]))
+    fig2 = go.Figure(go.Waterfall(x=kpi_grouped[group_col], y=kpi_grouped["Temperature (°C)"]))
+    fig3 = go.Figure(go.Waterfall(x=kpi_grouped[group_col], y=kpi_grouped["Humidity (%)"]))
+
+elif chart_type == "gauge":
     def solid_gauge(val, title, max_range):
         return go.Figure(go.Indicator(mode="gauge+number", value=val, title={"text": title}, gauge={"axis": {"range": [0, max_range]}}))
-
+    
     latest_energy = room_df["Energy Consumption (kWh)"].dropna().iloc[-1] if not room_df["Energy Consumption (kWh)"].dropna().empty else 0
-    fig1 = solid_gauge(latest_energy, "Current Energy (kWh)", room_df["Energy Consumption (kWh)"].max() or 1)
     latest_temp = room_df["Temperature (°C)"].dropna().iloc[-1] if not room_df["Temperature (°C)"].dropna().empty else 0
-    fig2 = solid_gauge(latest_temp, "Current Temp (°C)", 50)
     latest_humidity = room_df["Humidity (%)"].dropna().iloc[-1] if not room_df["Humidity (%)"].dropna().empty else 0
-    fig3 = solid_gauge(latest_humidity, "Current Humidity (%)", 100)
 
-st.plotly_chart(fig1, use_container_width=True)
-st.plotly_chart(fig2, use_container_width=True)
-st.plotly_chart(fig3, use_container_width=True)
+    fig1 = solid_gauge(latest_energy, "Current Energy (kWh)", max(room_df["Energy Consumption (kWh)"].max(), 1))
+    fig2 = solid_gauge(latest_temp, "Current Temp (°C)", 50)
+    fig3 = solid_gauge(latest_humidity, "Current Humidity (%)", 100)
+    
+if fig1: st.plotly_chart(fig1, use_container_width=True)
+if fig2: st.plotly_chart(fig2, use_container_width=True)
+if fig3: st.plotly_chart(fig3, use_container_width=True)
+
 
 # 3. Appliance Trend
 st.markdown("<div class='section-header'>🔌 Appliance-wise Trend</div>", unsafe_allow_html=True)
