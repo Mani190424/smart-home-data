@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -104,6 +105,7 @@ st.markdown("""
     </style>
     <div class='mobile-toggle'><i>📱</i></div>
 """, unsafe_allow_html=True)
+
 # Custom CSS for the Top Appliance Table
 st.markdown("""
 <style>
@@ -166,6 +168,7 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
+
 st.markdown("""
 <style>
 /* Change background and border */
@@ -201,6 +204,7 @@ div[data-baseweb="option"]:hover {
 }
 </style>
 """, unsafe_allow_html=True)
+
 st.markdown("""
 <style>
 /* Sidebar container */
@@ -307,8 +311,6 @@ document.querySelectorAll(".collapsible").forEach(btn => {
 });
 </script>
 """, height=0)
-
-st.title("🏠 Smart Home Energy Dashboard")
 
 @st.cache_data
 def load_data():
