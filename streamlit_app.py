@@ -420,10 +420,11 @@ if not kpi_grouped.empty:
         fig1 = px.timeline(kpi_grouped, x_start=group_col, x_end=group_col, y="Energy Consumption (kWh)")
     elif chart_type == "🌈 Area":
         fig1 = px.area(kpi_grouped, x=group_col, y="Energy Consumption (kWh)")
-    st.plotly_chart(fig1, use_container_width=True)
+    if fig1 is not None:
+     st.plotly_chart(fig1, use_container_width=True)
 else:
-    st.warning("⚠️ No energy data for the selected filter.")
-    
+    st.warning("⚠️ No Energy Chart to Display.")
+
 st.markdown("<div class='section-header'>🌡️ Temperature (°C)</div>", unsafe_allow_html=True)
 
 if not kpi_grouped.empty:
@@ -435,9 +436,10 @@ if not kpi_grouped.empty:
         fig2 = px.timeline(kpi_grouped, x_start=group_col, x_end=group_col, y="Temperature (°C)")
     elif chart_type == "🌈 Area":
         fig2 = px.area(kpi_grouped, x=group_col, y="Temperature (°C)", color_discrete_sequence=["red"])
-    st.plotly_chart(fig2, use_container_width=True)
+    if fig2 is not None:
+     st.plotly_chart(fig2, use_container_width=True)
 else:
-    st.warning("⚠️ No temperature data for the selected filter.")
+    st.warning("⚠️ No Temperature Chart to Display.")
 
 st.markdown("<div class='section-header'>💧 Humidity (%)</div>", unsafe_allow_html=True)
 
@@ -450,10 +452,12 @@ if not kpi_grouped.empty:
         fig3 = px.timeline(kpi_grouped, x_start=group_col, x_end=group_col, y="Humidity (%)")
     elif chart_type == "🌈 Area":
         fig3 = px.area(kpi_grouped, x=group_col, y="Humidity (%)")
+    
+if fig3 is not None:
     st.plotly_chart(fig3, use_container_width=True)
 else:
-    st.warning("⚠️ No humidity data for the selected filter.")
-
+    st.warning("⚠️ No Humidity Chart to Display.")
+    
 # 3. Appliance Trend
 st.markdown("<div class='section-header'>🔌 Appliance-wise Trend</div>", unsafe_allow_html=True)
 room_appliances = room_df['Appliance'].dropna().unique().tolist()
