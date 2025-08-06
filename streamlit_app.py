@@ -6,6 +6,33 @@ from datetime import datetime
 
 st.set_page_config(page_title="Smart Home Energy Dashboard", layout="wide")
 
+# --- Mobile/Desktop Toggle Logic ---
+if 'mobile_mode' not in st.session_state:
+    st.session_state.mobile_mode = False
+
+def toggle_mobile():
+    st.session_state.mobile_mode = not st.session_state.mobile_mode
+
+st.markdown("<meta name='viewport' content='width=device-width, initial-scale=1.0'>", unsafe_allow_html=True)
+
+st.markdown("""
+    <style>
+    .mobile-toggle {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 9999;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #6EE7B7, #3B82F6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+        animation: pulse 2s infinite;
+        cursor: pointer;
+    }
     @keyframes pulse {
         0% { transform: scale(1); }
         50% { transform: scale(1.05); }
