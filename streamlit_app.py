@@ -4,6 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 
+
 st.set_page_config(page_title="Smart Home Energy Dashboard", layout="wide")
 
 # --- Mobile/Desktop Toggle Logic ---
@@ -357,6 +358,7 @@ def load_data():
     return df
 
 df = load_data()
+df.head()
 
 # Sidebar Filters
 st.sidebar.header("🗂️Filter ")
