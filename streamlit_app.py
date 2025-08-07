@@ -347,7 +347,7 @@ document.querySelectorAll(".collapsible").forEach(btn => {
 
 @st.cache_data
 def load_data():
-    url = "https://raw.githubusercontent.com/Mani190424/smart-home-data/refs/heads/main/Smart_Automation_Home_System_in.csv"
+    url = "https://github.com/Mani190424/smart-home-data/blob/main/Smart_Automation_Home_System_in.csv"
     df = pd.read_csv(url)
     df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
     df.dropna(subset=['Date'], inplace=True)
