@@ -347,9 +347,10 @@ document.querySelectorAll(".collapsible").forEach(btn => {
 """, height=0)
 
 @st.cache_data
+@st.cache_data
 def load_data():
-    url = "https://raw.githubusercontent.com/Mani190424/smart-home-data/main/Smart_Automation_Home_System_in.csv"
-    df = pd.read_csv(url)
+    url = "https://drive.google.com/uc?export=download&id=1MuFCqyetyJq2C5fyHXIYe1lnmNGNZDRY"
+    df = pd.read_csv(url, encoding='ISO-8859-1')
     df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
     df.dropna(subset=['Date'], inplace=True)
     df['Month'] = df['Date'].dt.to_period("M").astype(str)
@@ -358,7 +359,6 @@ def load_data():
     return df
 
 df = load_data()
-df.head()
 
 # Sidebar Filters
 st.sidebar.header("🗂️Filter ")
