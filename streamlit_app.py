@@ -361,16 +361,23 @@ def load_data():
 df = load_data()
 
 # Sidebar Filters
-st.sidebar.header("🗂️Filter ")
-start_date = st.sidebar.date_input("📍From", df["Date"].min().date())
-end_date = st.sidebar.date_input("📍To", df["Date"].max().date())
+with st.sidebar.expander("🗂️ Filter Options", expanded=True):
+    start_date = st.date_input("📍From", df["Date"].min().date())
+    end_date = st.date_input("📍To", df["Date"].max().date())
 
+    group_by = st.radio(
+        "📅 Group Data By",
+        ["⌛Daily", "🗓️Weekly", "📅Monthly", "📊Yearly"],
+        index=0
+    )
+
+# Apply filters
 df = df[(df["Date"] >= pd.to_datetime(start_date)) & (df["Date"] <= pd.to_datetime(end_date))]
+
 if df.empty:
     st.warning("No data for selected date range.")
     st.stop()
 
-group_by = st.sidebar.radio("📅 Group Data By", ["⌛Daily", "🗓️Weekly", "📅Monthly", "📊Yearly"])
 group_col = {
     "⌛Daily": "Date",
     "🗓️Weekly": "Week",
