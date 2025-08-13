@@ -7,42 +7,8 @@ from datetime import datetime
 
 st.set_page_config(page_title="Smart Home Energy Dashboard", layout="wide")
 
-# --- Mobile/Desktop Toggle Logic ---
-if 'mobile_mode' not in st.session_state:
-    st.session_state.mobile_mode = False
-
-def toggle_mobile():
-    st.session_state.mobile_mode = not st.session_state.mobile_mode
-
-st.markdown("<meta name='viewport' content='width=device-width, initial-scale=1.0'>", unsafe_allow_html=True)
-
 st.markdown("""
     <style>
-    .mobile-toggle {
-        position: fixed;
-        top: 12px;
-        left: 12px;
-        z-index: 9999;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #6EE7B7, #3B82F6);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
-        animation: pulse 2s infinite;
-        cursor: pointer;
-    }
-    @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-        100% { transform: scale(1); }
-    }
-    .mobile-toggle i {
-        color: white;
-        font-size: 20px;
-    }
     .section-header {
         padding: 12px;
         margin: 30px 0 10px;
@@ -126,21 +92,10 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
     </style>
-    <div class='mobile-toggle' onclick='parent.postMessage({ type: "mobile_toggle" }, "*")'><i>📱</i></div>
 """, unsafe_allow_html=True)
 
-# JavaScript toggle hook
-st.components.v1.html("""
-<script>
-window.addEventListener("message", (e) => {
-  if (e.data.type === "mobile_toggle") {
-    fetch("/_stcore/toggle_mobile", { method: "POST" });
-  }
-});
-</script>
-""", height=0)
+# CSS for the Top Appliance Table
 
-# Custom CSS for the Top Appliance Table
 st.markdown("""
 <style>
 /* Style only the dataframes that come next */
@@ -169,6 +124,7 @@ div[data-testid="stDataFrame"] th, div[data-testid="stDataFrame"] td {
 """, unsafe_allow_html=True)
 
 # Sidebar theme
+
 st.sidebar.markdown("""
     <style>
     .css-1aumxhk, .css-1d391kg {
@@ -297,10 +253,10 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-theme = st.sidebar.radio("🎨 Theme", ["🌞 Light", "🌙 Dark", "🌛 Synthwave"])
-primary_color = "#FAF4F4" if theme == "🌞 Light" else ("#B21EE3AC" if theme == "🌙 Dark" else "#d47ad7")
-bg_color = "#F8FAFC" if theme == "🌞 Light" else ("#F0F2F5" if theme == "🌙 Dark" else "#151532")
-font_color = "#E1E8EC" if theme == "🌞 Light" else ("#B21EE3AC" if theme == "🌙 Dark" else "#fc81fc")
+theme = st.sidebar.radio("🎨 Theme", ["🌞 Light", "🌙 Dark"])
+primary_color = "#FAF4F4" if theme == "🌞 Light" else ("#E4DEE6AC" if theme == "🌙 Dark" else "#f2e8f2")
+bg_color = "#F8FAFC" if theme == "🌞 Light" else ("#F0F2F5" if theme == "🌙 Dark" else "#DADAE3B5")
+font_color = "#E1E8EC" if theme == "🌞 Light" else ("#0DE6D75E" if theme == "🌙 Dark" else "#f2e8f2")
 
 st.markdown(f"""
     <style>
@@ -329,24 +285,8 @@ st.markdown(f"""
 
 st.markdown("<div class='section-header'>🏠 Smart Home Energy Dashboard</div>", unsafe_allow_html=True)
 
-# JS for toggle chart sections (optional)
-st.components.v1.html("""
-<script>
-document.querySelectorAll(".collapsible").forEach(btn => {
-  btn.addEventListener("click", function() {
-    this.classList.toggle("active");
-    var content = this.nextElementSibling;
-    if (content.style.display === "block") {
-      content.style.display = "none";
-    } else {
-      content.style.display = "block";
-    }
-  });
-});
-</script>
-""", height=0)
+# Load Data
 
-@st.cache_data
 @st.cache_data
 def load_data():
     url = "https://drive.google.com/uc?export=download&id=1MuFCqyetyJq2C5fyHXIYe1lnmNGNZDRY"
@@ -361,6 +301,7 @@ def load_data():
 df = load_data()
 
 # Sidebar Filters
+
 with st.sidebar.expander("🗂️ Filter Options", expanded=True):
     start_date = st.date_input("📍From", df["Date"].min().date())
     end_date = st.date_input("📍To", df["Date"].max().date())
@@ -372,6 +313,7 @@ with st.sidebar.expander("🗂️ Filter Options", expanded=True):
     )
 
 # Apply filters
+
 df = df[(df["Date"] >= pd.to_datetime(start_date)) & (df["Date"] <= pd.to_datetime(end_date))]
 
 if df.empty:
@@ -382,10 +324,10 @@ group_col = {
     "⌛Daily": "Date",
     "🗓️Weekly": "Week",
     "📅Monthly": "Month",
-    "📊Yearly": "Year"
+    "📊Yearly": "Year",
 }[group_by]
 
-# 1. KPIs
+# KPIs
 st.markdown("<div class='section-header'>📊 Room KPIs</div>", unsafe_allow_html=True)
 room_selector = st.selectbox("🏠 Select Room", df["Room"].dropna().unique())
 room_df = df[df["Room"] == room_selector]
@@ -401,7 +343,7 @@ col1.markdown(f"<div class='kpi-card'><h4>⚡ Total Energy</h4><h2>{kpi_grouped[
 col2.markdown(f"<div class='kpi-card'><h4>🌡 Avg Temp</h4><h2>{kpi_grouped['Temperature (°C)'].mean():.1f} °C</h2></div>", unsafe_allow_html=True)
 col3.markdown(f"<div class='kpi-card'><h4>💧 Avg Humidity</h4><h2>{kpi_grouped['Humidity (%)'].mean():.1f} %</h2></div>", unsafe_allow_html=True)
 
-# 2. Chart
+# Charts
 st.markdown("<div class='section-header'>📈 Energy Trend</div>", unsafe_allow_html=True)
 chart_map = {
     "📈 Line": "line",
@@ -428,7 +370,7 @@ elif chart_type == "gauge":
 if fig1: st.plotly_chart(fig1, use_container_width=True)
 st.markdown("<div class='section-header'>🌡 Temperature (°C) Trend</div>", unsafe_allow_html=True)
 
-fig2 = None  # Initialize
+fig2 = None 
 
 if chart_type in ["line", "bar"]:
     fig2 = px.line(kpi_grouped, x=group_col, y="Temperature (°C)", color_discrete_sequence=["red"]) if chart_type == "line" else px.bar(kpi_grouped, x=group_col, y="Temperature (°C)", color_discrete_sequence=["red"])
@@ -454,7 +396,6 @@ elif chart_type == "gauge":
     latest_temp = room_df["Temperature (°C)"].dropna().iloc[-1] if not room_df["Temperature (°C)"].dropna().empty else 0 
     fig2 = solid_gauge(latest_temp, "Current Temp (°C)", 50)
 
-# ✅ Safe rendering
 if fig2 is not None:
     st.plotly_chart(fig2, use_container_width=True)
 
@@ -474,11 +415,11 @@ elif chart_type == "gauge":
     
 if fig3: st.plotly_chart(fig3, use_container_width=True)
 
+# Appliance Trend
 
-# 3. Appliance Trend
 st.markdown("<div class='section-header'>🔌 Appliance-wise Trend</div>", unsafe_allow_html=True)
 room_appliances = room_df['Appliance'].dropna().unique().tolist()
-selected_appliances = st.multiselect("Select Appliances", room_appliances, default=room_appliances[:3])
+selected_appliances = st.multiselect("📺Select Appliances", room_appliances, default=room_appliances[:3])
 
 appliance_df = room_df[room_df['Appliance'].isin(selected_appliances)]
 trend = appliance_df.groupby([group_col, "Appliance"])["Energy Consumption (kWh)"].sum().reset_index()
@@ -489,7 +430,8 @@ if not trend.empty:
 else:
     st.info("No appliance data for selection.")
 
-# 4. Download This Room
+# Download This Room
+
 st.markdown("<div class='section-header'>📥 Download Room Data</div>", unsafe_allow_html=True)
 @st.cache_data
 
@@ -498,7 +440,8 @@ def convert_df(df):
 
 st.download_button("📄 Download Room CSV", convert_df(room_df), f"{room_selector.lower().replace(' ', '_')}_data.csv", "text/csv")
 
-# 5. Compare Energy Between 2 Rooms
+# Compare Energy Between 2 Rooms
+
 st.markdown("<div class='section-header'>🆚 Compare Energy Usage Between Rooms</div>", unsafe_allow_html=True)
 compare_rooms = st.multiselect("Select 2 Rooms", df['Room'].dropna().unique().tolist(), default=df['Room'].dropna().unique().tolist()[:2], max_selections=2)
 compare_df = df[df['Room'].isin(compare_rooms)]
@@ -506,13 +449,15 @@ room_compare = compare_df.groupby([group_col, "Room"])["Energy Consumption (kWh)
 fig_comp = px.line(room_compare, x=group_col, y="Energy Consumption (kWh)", color="Room", title="Room-wise Comparison")
 st.plotly_chart(fig_comp, use_container_width=True)
 
-# 6. Appliance Trend Comparison
+# Appliance Trend Comparison
+
 st.markdown("<div class='section-header'>📊 Appliance Trend </div>", unsafe_allow_html=True)
 room_app = compare_df.groupby([group_col, "Room", "Appliance"])["Energy Consumption (kWh)"].sum().reset_index()
 fig_room_app = px.line(room_app, x=group_col, y="Energy Consumption (kWh)", color="Appliance", facet_col="Room", title="Appliance Trends by Room")
 st.plotly_chart(fig_room_app, use_container_width=True)
 
-# 7. Top Appliance Only
+# Top Appliance Only
+
 st.markdown(" <div class='section-header'>🚀 Top Appliance by Energy</div>", unsafe_allow_html=True)
 top_appl = compare_df.groupby(["Room", "Appliance"])["Energy Consumption (kWh)"].sum().reset_index()
 top1 = top_appl.sort_values(["Room", "Energy Consumption (kWh)"], ascending=[True, False]).groupby("Room").head(1)
@@ -520,7 +465,8 @@ for room in compare_rooms:
     st.markdown(f"**{room}**")
     st.dataframe(top1[top1["Room"] == room][["Appliance", "Energy Consumption (kWh)"]])
 
-# 8. Export Comparison
+# Export Comparison
+
 st.markdown("<div class='section-header'>📦 Export Comparison Data</div>", unsafe_allow_html=True)
 st.download_button("📄 Download Room Comparison", convert_df(room_compare), "room_comparison.csv", "text/csv")
 st.download_button("📄 Download Appliance Trends", convert_df(room_app), "appliance_trends.csv", "text/csv")
