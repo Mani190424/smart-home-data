@@ -23,8 +23,10 @@ A fully interactive, mobile-friendly Smart Home Energy Dashboard built with **St
 smart-home-dashboard/
 │
 ├── streamlit_app.py
+└── Style.css
 ├── README.md
 └── requirements.txt
+
 ```
 
 ---
