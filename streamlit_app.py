@@ -289,7 +289,7 @@ st.markdown("<div class='section-header'>🏠 Smart Home Energy Dashboard</div>"
 
 @st.cache_data
 def load_data():
-    url = "https://drive.google.com/uc?export=download&id=1MuFCqyetyJq2C5fyHXIYe1lnmNGNZDRY"
+    url = "https://drive.google.com/file/d/1ucpXUjC-ZkbLV-5gLgJuUlz8TiOJ2OS0/view?usp=sharing"
     df = pd.read_csv(url, encoding='ISO-8859-1')
     df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
     df.dropna(subset=['Date'], inplace=True)
