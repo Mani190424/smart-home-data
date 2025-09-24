@@ -47,13 +47,13 @@ group_options = ["Daily", "Weekly", "Monthly", "Yearly"]
 group_by = st.sidebar.selectbox("⏱ Group Data By", group_options)
 
 if group_by == "Daily":
-    df["Period"] = df["Date"].dt.date
+    df["Year"] = df["Date"].dt.date
 elif group_by == "Weekly":
-    df["Period"] = df["Date"].dt.to_period("W").apply(lambda r: r.start_time)
+    df["Year"] = df["Date"].dt.to_Year("W").apply(lambda r: r.start_time)
 elif group_by == "Monthly":
-    df["Period"] = df["Date"].dt.to_period("M").apply(lambda r: r.start_time)
+    df["Year"] = df["Date"].dt.to_Year("M").apply(lambda r: r.start_time)
 else:
-    df["Period"] = df["Date"].dt.to_period("Y").apply(lambda r: r.start_time)
+    df["Year"] = df["Date"].dt.to_Year("Y").apply(lambda r: r.start_time)
 
 # ===== HEADER =====
 st.markdown('<div class="section-header">🏠 Smart Home Dashboard</div>', unsafe_allow_html=True)
@@ -94,18 +94,18 @@ st.markdown('<div class="section-header">🔌 Appliance Trend</div>', unsafe_all
 appliances = room_df['Appliance'].dropna().unique()
 selected_appliances = st.multiselect("Select Appliances", appliances, default=appliances[:3])
 appl_df = room_df[room_df['Appliance'].isin(selected_appliances)]
-trend_appl = appl_df.groupby(['Period', 'Appliance'])['Energy Consumption (kWh)'].sum().reset_index()
+trend_appl = appl_df.groupby(['Year', 'Appliance'])['Energy Consumption (kWh)'].sum().reset_index()
 if not trend_appl.empty:
-    fig_appl = px.line(trend_appl, x='Period', y='Energy Consumption (kWh)', color='Appliance', title="Appliance Energy Trend")
+    fig_appl = px.line(trend_appl, x='Year', y='Energy Consumption (kWh)', color='Appliance', title="Appliance Energy Trend")
     st.plotly_chart(fig_appl, use_container_width=True)
 
 # ===== ROOM WISE COMPARISON =====
 st.markdown('<div class="section-header">🆚 Room-wise Energy Comparison</div>', unsafe_allow_html=True)
 compare_rooms = st.multiselect("Select 2 Rooms for Comparison", df['Room'].dropna().unique(), default=df['Room'].dropna().unique()[:2], max_selections=2)
 compare_df = df[df['Room'].isin(compare_rooms)]
-room_compare = compare_df.groupby(['Period', 'Room'])['Energy Consumption (kWh)'].sum().reset_index()
+room_compare = compare_df.groupby(['Year', 'Room'])['Energy Consumption (kWh)'].sum().reset_index()
 if not room_compare.empty:
-    fig_comp = px.line(room_compare, x='Period', y='Energy Consumption (kWh)', color='Room', title="Room-wise Energy Comparison")
+    fig_comp = px.line(room_compare, x='Year', y='Energy Consumption (kWh)', color='Room', title="Room-wise Energy Comparison")
     st.plotly_chart(fig_comp, use_container_width=True)
 
 # ===== TOP 1 APPLIANCE =====
