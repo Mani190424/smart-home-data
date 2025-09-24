@@ -49,11 +49,11 @@ group_by = st.sidebar.selectbox("⏱ Group Data By", group_options)
 if group_by == "Daily":
     df["Year"] = df["Date"].dt.date
 elif group_by == "Weekly":
-    df["Year"] = df["Date"].dt.to_Year("W").apply(lambda r: r.start_time)
+    df["Year"] = df["Date"].dt.to_period("W").apply(lambda r: r.start_time)
 elif group_by == "Monthly":
-    df["Year"] = df["Date"].dt.to_Year("M").apply(lambda r: r.start_time)
+    df["Year"] = df["Date"].dt.to_period("M").apply(lambda r: r.start_time)
 else:
-    df["Year"] = df["Date"].dt.to_Year("Y").apply(lambda r: r.start_time)
+    df["Year"] = df["Date"].dt.to_period("Y").apply(lambda r: r.start_time)
 
 # ===== HEADER =====
 st.markdown('<div class="section-header">🏠 Smart Home Dashboard</div>', unsafe_allow_html=True)
